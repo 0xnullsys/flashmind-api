@@ -28,20 +28,6 @@ app.use(express.json({ limit: '1mb' }));
 // GET /api/health
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// ponytail: debug-only endpoint, remove after Vercel HF connectivity confirmed
-app.get('/debug/hf', async (_req, res) => {
-  try {
-    const url = 'https://cfcc557d6y-flashmind-ai-services.hf.space/';
-    console.log('[debug/hf] GET', url);
-    const r = await fetch(url, { method: 'GET' });
-    console.log('[debug/hf] response status', r.status);
-    res.json({ status: r.status, ok: r.ok, url });
-  } catch (err: any) {
-    console.error('[debug/hf] error', err?.message, err?.cause);
-    res.status(500).json({ error: err?.message, code: err?.cause?.code, hostname: err?.cause?.hostname });
-  }
-});
-
 // Routes (caller mounts under /api)
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);

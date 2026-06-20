@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { t } from '../lib/id';
 import { useAuth } from '../lib/auth';
 import { ApiError } from '../lib/api';
@@ -6,9 +7,12 @@ import { ApiError } from '../lib/api';
 interface AuthDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  // ponytail: default redirects to /app after successful auth; caller can override
+  onSuccess?: () => void;
 }
 
-export default function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
+export default function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const { login, register } = useAuth();
   const [error, setError] = useState('');
@@ -47,6 +51,7 @@ export default function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
         }
         await login(email, password);
         onClose();
+        (onSuccess ?? (() => navigate('/app')))();
       } else {
         if (!firstName || !lastName || !email || !password) {
           setError(t('error.required'));
@@ -65,6 +70,7 @@ export default function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
         }
         await register({ firstName, lastName, email, gender, password });
         onClose();
+        (onSuccess ?? (() => navigate('/app')))();
       }
     } catch (err) {
       if (err instanceof ApiError) {

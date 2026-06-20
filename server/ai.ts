@@ -1,6 +1,5 @@
-// ponytail: HF Space (Docker/Flask) returns .apkg binary.
-// We upload text as form-data `note_text`, then download .apkg and
-// parse it via Python helper `anki_parse.py` to extract card pairs.
+// ponytail: HF Space (Flask) — request JSON, get JSON cards back.
+// No Python subprocess needed; pure HTTP works in Vercel serverless.
 
 interface AICard {
   judul: string;
@@ -21,7 +20,7 @@ export async function generateCards(notes: string): Promise<AICard[]> {
     }
   }
 
-  // Fallback to OpenAI if provider is auto or openai
+  // Fallback to OpenAI
   if ((provider === 'auto' || provider === 'openai') && process.env.OPENAI_API_KEY) {
     try {
       const cards = await generateCardsOpenAI(notes);
@@ -36,91 +35,38 @@ export async function generateCards(notes: string): Promise<AICard[]> {
 }
 
 async function generateCardsHF(notes: string): Promise<AICard[]> {
-  let hfSpaceUrl = process.env.HF_SPACE_ID;
+  let hfSpaceUrl = process.env.HF_SPACE_ID || process.env.HF_SPACE_URL;
   if (!hfSpaceUrl) {
     throw new Error('HF_SPACE_ID tidak dikonfigurasi');
   }
 
-  // ponytail: accept either full URL or "username/space-name" format
+  // ponytail: accept full URL, page URL, or "username/space-name" format
+  let apiBase: string;
   if (/^https?:\/\//.test(hfSpaceUrl)) {
-    // Translate HF page URL to API subdomain when needed
     const pageMatch = hfSpaceUrl.match(/^https?:\/\/huggingface\.co\/spaces\/([^/]+)\/?$/);
-    if (pageMatch) {
-      hfSpaceUrl = `https://${pageMatch[1]}.hf.space`;
-    }
+    apiBase = pageMatch ? `https://${pageMatch[1]}.hf.space` : hfSpaceUrl.replace(/\/$/, '');
   } else {
-    hfSpaceUrl = `https://${hfSpaceUrl}.hf.space`;
+    apiBase = `https://${hfSpaceUrl}.hf.space`;
   }
 
-  // Build multipart form-data (matches the Space's POST /)
+  const url = `${apiBase}/v1/cards`;
   const form = new FormData();
   form.append('note_text', notes);
 
-  const uploadRes = await fetch(hfSpaceUrl, {
-    method: 'POST',
-    body: form,
-  });
-
-  if (!uploadRes.ok) {
-    const text = await uploadRes.text().catch(() => '');
-    throw new Error(`HF Space upload failed (${uploadRes.status}): ${text.slice(0, 200)}`);
+  const res = await fetch(url, { method: 'POST', body: form });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`HF Space /v1/cards failed (${res.status}): ${text.slice(0, 200)}`);
   }
 
-  const contentType = uploadRes.headers.get('content-type') || '';
-  if (!contentType.includes('octet-stream') && !contentType.includes('apkg')) {
-    // Space returned HTML/text instead of .apkg (likely an error message)
-    const text = await uploadRes.text();
-    throw new Error(`HF Space did not return .apkg: ${text.slice(0, 200)}`);
+  const data = (await res.json()) as { cards?: Array<{ question?: string; answer?: string; judul?: string; catatan?: string }> };
+  if (!data.cards || !Array.isArray(data.cards)) {
+    throw new Error('HF Space returned unexpected JSON shape');
   }
-
-  // Save .apkg to temp file
-  const { writeFile, unlink } = await import('fs/promises');
-  const { spawn } = await import('child_process');
-  const os = await import('os');
-  const path = await import('path');
-
-  const tmpDir = os.tmpdir();
-  const apkgPath = path.join(tmpDir, `flashmind-${Date.now()}.apkg`);
-
-  const buffer = Buffer.from(await uploadRes.arrayBuffer());
-  await writeFile(apkgPath, buffer);
-
-  try {
-    // Parse with Python helper
-    const pyScript = path.join(process.cwd(), 'server', 'anki_parse.py');
-    const result = await runPython(pyScript, [apkgPath]);
-    if (result.error) {
-      throw new Error(`apkg parse failed: ${result.error}`);
-    }
-    return result.cards || [];
-  } finally {
-    await unlink(apkgPath).catch(() => {});
-  }
-}
-
-import { spawn } from 'child_process';
-
-function runPython(script: string, args: string[]): Promise<{ cards?: AICard[]; error?: string }> {
-  return new Promise((resolve) => {
-    const py = process.platform === 'win32' ? 'python' : 'python3';
-    const child = spawn(py, [script, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (b) => { stdout += b.toString(); });
-    child.stderr.on('data', (b) => { stderr += b.toString(); });
-    child.on('error', (err) => resolve({ error: `spawn failed: ${err.message}` }));
-    child.on('close', (code) => {
-      if (code !== 0) {
-        resolve({ error: stderr || `python exited ${code}` });
-        return;
-      }
-      try {
-        resolve(JSON.parse(stdout));
-      } catch (e) {
-        resolve({ error: `invalid python output: ${stdout.slice(0, 200)}` });
-      }
-    });
-  });
+  return data.cards.map((c) => ({
+    judul: c.judul || c.question || 'Kartu',
+    catatan: c.catatan || c.answer || '',
+  })).filter((c) => c.judul || c.catatan);
 }
 
 async function generateCardsOpenAI(notes: string): Promise<AICard[]> {
