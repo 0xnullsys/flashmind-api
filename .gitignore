@@ -6,3 +6,4 @@ dist
 SPEC.md
 index.md
 .atl
+.env.example
