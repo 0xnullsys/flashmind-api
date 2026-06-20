@@ -31,7 +31,7 @@ function useScrollReveal() {
 
 export default function Landing() {
   const [authOpen, setAuthOpen] = useState(false);
-  const { createGuest } = useAuth();
+  const { createGuest, role, loading } = useAuth();
   const navigate = useNavigate();
   const [demoFlipped, setDemoFlipped] = useState(false);
   const [heroLoaded, setHeroLoaded] = useState(false);
@@ -152,6 +152,12 @@ export default function Landing() {
 
   const handleGuestTry = async () => {
     try {
+      // ponytail: skip API hit when already authenticated — cookie carries the session
+      if (role === 'guest' || role === 'user') {
+        navigate('/app');
+        return;
+      }
+      if (loading) return; // wait for session check to complete
       await createGuest();
       navigate('/app');
     } catch (err) {
