@@ -3,3 +3,5 @@ dist
 .env
 *.local
 .vercel
+SPEC.md
+index.md
