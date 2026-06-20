@@ -19,7 +19,7 @@ function getClient(): SupabaseClient {
   }
   // ponytail: Vercel Node 20 lacks native WebSocket; pass `ws` as realtime transport
   _client = createClient(supabaseUrl, supabaseKey, {
-    realtime: { transport: ws },
+    realtime: { transport: ws as any },
   });
   return _client;
 }
