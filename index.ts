@@ -5,13 +5,15 @@ export const config = {
 };
 
 import express from 'express';
-import app from './server/app';
+import * as appModule from './server/app';
+
+const app: any = (appModule as any).default ?? appModule;
+console.log('[index.ts] module loaded, app type:', typeof app);
 
 export default async function handler(req: any, res: any) {
   try {
-    console.log('[handler] ' + req.method + ' ' + req.url);
     return await new Promise<void>((resolve) => {
-      (app as any)(req, res, (err: any) => {
+      app(req, res, (err: any) => {
         if (err) {
           console.error('[handler] express err:', err?.message);
           if (!res.headersSent) {
@@ -22,9 +24,9 @@ export default async function handler(req: any, res: any) {
       });
     });
   } catch (err: any) {
-    console.error('[handler] error:', err?.message);
+    console.error('[handler] error:', err?.message, err?.stack);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal', message: String(err?.message ?? err) });
+      res.status(500).json({ error: 'Internal', message: String(err?.message ?? err), stack: String(err?.stack ?? '').slice(0, 1500) });
     }
   }
 }
