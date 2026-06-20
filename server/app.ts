@@ -30,12 +30,12 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/flashcards', flashcardRoutes);
-app.use('/api/test', testRoutes);
-app.use('/api/v0', v0Routes);
+// Routes (Vercel mounts api/index.ts at /api, so path prefixes are already stripped)
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/flashcards', flashcardRoutes);
+app.use('/test', testRoutes);
+app.use('/v0', v0Routes);
 
 // Seed admin if configured and DB is empty
 async function seedAdmin() {
