@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import { createServer } from 'http';
 
-const app = (await import('./api/index.js')).default;
+const app = (await import('./api/[...slug].js')).default;
 
 const server = createServer((req, res) => {
   try {

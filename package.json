@@ -7,7 +7,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "dev": "concurrently \"vite --host 0.0.0.0\" \"node -r dotenv/config node_modules/tsx/dist/cli.mjs watch server/index.ts\"",
+    "dev": "tsx watch --env-file=.env --exclude 'vite.config.ts.timestamp-*' server/dev.ts",
     "build": "vite build",
     "start": "node dist/server/index.js",
     "test": "vitest run"

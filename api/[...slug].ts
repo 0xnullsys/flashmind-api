@@ -25,7 +25,7 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// API routes
+// API routes (full path because Vercel passes full URL to handler)
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

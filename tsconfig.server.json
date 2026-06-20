@@ -9,7 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "composite": true,
+    "outDir": "./dist-server",
+    "tsBuildInfoFile": "./dist-server/.tsbuildinfo"
   },
   "include": ["server", "api"]
 }

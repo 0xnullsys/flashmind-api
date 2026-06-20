@@ -6,6 +6,7 @@ import { ApiError } from '../lib/api';
 import Flashcard from '../components/Flashcard';
 import FlashcardEditor from '../components/FlashcardEditor';
 import AICreate from '../components/AICreate';
+import AuthDialog from '../components/AuthDialog';
 
 export default function Dashboard() {
   const { user, role, logout } = useAuth();
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [error, setError] = useState('');
 
   const loadCards = useCallback(async () => {
@@ -95,7 +97,7 @@ export default function Dashboard() {
           <p>{t('dashboard.guestBanner')}</p>
           <button
             className="btn btn-primary btn-sm"
-            onClick={() => (window.location.href = '/')}
+            onClick={() => setShowAuth(true)}
           >
             {t('dashboard.guestCta')}
           </button>
@@ -128,6 +130,11 @@ export default function Dashboard() {
         isOpen={showAI}
         onClose={() => setShowAI(false)}
         onCreated={loadCards}
+      />
+
+      <AuthDialog
+        isOpen={showAuth}
+        onClose={() => setShowAuth(false)}
       />
     </div>
   );

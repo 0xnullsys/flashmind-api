@@ -25,12 +25,12 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// Health check (Vercel mounts api/index.ts at /api, so prefix is already stripped)
+// Health check (caller mounts under /api, so no prefix here)
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Routes (Vercel mounts api/index.ts at /api, so path prefixes are already stripped)
+// Routes (caller mounts under /api)
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/flashcards', flashcardRoutes);
