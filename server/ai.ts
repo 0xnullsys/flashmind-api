@@ -107,10 +107,10 @@ async function generateCardsOpenAI(notes: string): Promise<AICard[]> {
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error('OpenAI returned empty response');
 
-  return normalizeCards(content);
+  return normalizeCards(content, notes);
 }
 
-function normalizeCards(data: unknown): AICard[] {
+function normalizeCards(data: unknown, notes: string = ''): AICard[] {
   let cards: Array<{ judul?: string; catatan?: string; title?: string; notes?: string; front?: string; back?: string }>;
 
   if (typeof data === 'string') {
@@ -136,6 +136,6 @@ function normalizeCards(data: unknown): AICard[] {
   return cards.map((card) => ({
     judul: card.judul || card.title || card.front || 'Kartu',
     catatan: card.catatan || card.notes || card.back || '',
-    category: detectCategory(card.judul + ' ' + card.catatan + ' ' + notes),
+    category: detectCategory((card.judul || '') + ' ' + (card.catatan || '') + ' ' + notes),
   })).filter((card) => card.judul || card.catatan);
 }
