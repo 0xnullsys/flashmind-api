@@ -37,9 +37,10 @@ app.use('/flashcards', flashcardRoutes);
 app.use('/test', testRoutes);
 app.use('/v0', v0Routes);
 
-// Seed admin if configured and DB is empty
+// Seed admin if configured and DB is empty (skip on Vercel cold start to avoid blocking)
 async function seedAdmin() {
   try {
+    if (process.env.VERCEL) return; // ponytail: skip in serverless
     const adminUsername = process.env.ADMIN_USERNAME;
     const adminPassword = process.env.ADMIN_PASSWORD;
 
