@@ -23,9 +23,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await getProfile();
       setUser(data.user);
       setRole('user');
+      localStorage.setItem('fm_role', 'user');
     } catch {
-      setUser(null);
-      setRole(null);
+      // No active user session; check if we have a guest session marker
+      const guestFlag = localStorage.getItem('fm_role');
+      if (guestFlag === 'guest') {
+        setRole('guest');
+        setUser(null);
+      } else {
+        setUser(null);
+        setRole(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -39,23 +47,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await apiLogin({ email, password });
     setUser(data.user);
     setRole('user');
+    localStorage.setItem('fm_role', 'user');
   };
 
   const register = async (data: { firstName: string; lastName: string; email: string; gender: string; password: string }) => {
     const result = await apiRegister(data);
     setUser(result.user);
     setRole('user');
+    localStorage.setItem('fm_role', 'user');
   };
 
   const logout = async () => {
     await apiLogout();
     setUser(null);
     setRole(null);
+    localStorage.removeItem('fm_role');
   };
 
   const createGuest = async () => {
-    const data = await guestSession();
+    await guestSession();
     setRole('guest');
+    setUser(null);
+    localStorage.setItem('fm_role', 'guest');
   };
 
   return (

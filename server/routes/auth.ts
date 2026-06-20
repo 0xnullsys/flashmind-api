@@ -181,6 +181,15 @@ router.post('/logout', (_req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+// GET /api/auth/config - public config for client UI
+router.get('/config', (_req: Request, res: Response) => {
+  res.json({
+    googleEnabled: Boolean(
+      process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ),
+  });
+});
+
 // GET /api/auth/google
 router.get('/google', (_req: Request, res: Response) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;

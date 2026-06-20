@@ -7,7 +7,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "dev": "concurrently \"vite --host 0.0.0.0\" \"tsx watch server/index.ts\"",
+    "dev": "concurrently \"vite --host 0.0.0.0\" \"node -r dotenv/config node_modules/tsx/dist/cli.mjs watch server/index.ts\"",
     "build": "vite build",
     "start": "node dist/server/index.js",
     "test": "vitest run"
@@ -41,6 +41,7 @@
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.0",
+    "dotenv": "^17.4.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",

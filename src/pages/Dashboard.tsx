@@ -53,6 +53,8 @@ export default function Dashboard() {
     window.location.href = '/';
   };
 
+  const isGuest = role === 'guest';
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -63,14 +65,23 @@ export default function Dashboard() {
               {user.firstName} {user.lastName}
             </span>
           )}
+          {isGuest && (
+            <span className="dashboard-user dashboard-guest-badge">
+              {t('dashboard.guestBadge')}
+            </span>
+          )}
         </div>
         <div className="dashboard-header-right">
-          <button className="btn btn-primary" onClick={() => setShowEditor(true)}>
-            {t('dashboard.newManual')}
-          </button>
-          <button className="btn btn-secondary" onClick={() => setShowAI(true)}>
-            {t('dashboard.aiGen')}
-          </button>
+          {!isGuest && (
+            <>
+              <button className="btn btn-primary" onClick={() => setShowEditor(true)}>
+                {t('dashboard.newManual')}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowAI(true)}>
+                {t('dashboard.aiGen')}
+              </button>
+            </>
+          )}
           <button className="btn btn-outline" onClick={handleLogout}>
             Keluar
           </button>
@@ -79,9 +90,23 @@ export default function Dashboard() {
 
       {error && <div className="dashboard-error">{error}</div>}
 
+      {isGuest && (
+        <div className="dashboard-guest-banner">
+          <p>{t('dashboard.guestBanner')}</p>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => (window.location.href = '/')}
+          >
+            {t('dashboard.guestCta')}
+          </button>
+        </div>
+      )}
+
       <main className="dashboard-cards">
         {loading ? (
           <div className="dashboard-loading">{t('ai.loading')}</div>
+        ) : isGuest ? (
+          <div className="dashboard-empty">{t('dashboard.guestEmpty')}</div>
         ) : cards.length === 0 ? (
           <div className="dashboard-empty">{t('dashboard.empty')}</div>
         ) : (

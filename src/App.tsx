@@ -12,7 +12,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <div className="app-loading">Memuat…</div>;
   }
 
-  if (role !== 'user') {
+  if (role !== 'user' && role !== 'guest') {
     return <Navigate to="/" replace />;
   }
 
