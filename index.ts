@@ -14,6 +14,7 @@ import authRoutes from './server/routes/auth.js';
 import userRoutes from './server/routes/users.js';
 import flashcardRoutes from './server/routes/flashcards.js';
 import testRoutes from './server/routes/test.js';
+import uploadRoutes from './server/routes/uploads.js';
 import v0Routes from './server/routes/v0.js';
 
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/uploads', uploadRoutes);
 app.use('/api/v0', v0Routes);
 
 // Static files from Vite build (dist/)
