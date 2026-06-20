@@ -1,8 +1,9 @@
-{
-  "name": "flashmind-hf-proxy",
-  "main": "src/index.ts",
-  "compatibility_date": "2025-01-01",
-  "vars": {
-    "HF_TARGET": "https://cfcc557d6y-flashmind-ai-services.hf.space"
-  }
-}
+name = "flashmind-hf-proxy-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# ponytail: tell wrangler this is a Worker, not a Pages project
+pages_build_output_dir = ""
+
+[vars]
+HF_TARGET = "https://cfcc557d6y-flashmind-ai-services.hf.space"

@@ -78,12 +78,20 @@ export default function Dashboard() {
         </div>
         <div className="dashboard-header-right">
           {isGuest && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => setShowAI(true)}
-            >
-              {t('dashboard.aiGen')}
-            </button>
+            <>
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowAuth(true)}
+              >
+                {t('dashboard.newManual')}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAI(true)}
+              >
+                {t('dashboard.aiGen')}
+              </button>
+            </>
           )}
           {!isGuest && (
             <>

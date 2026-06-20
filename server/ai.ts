@@ -6,13 +6,13 @@ interface AICard {
   catatan: string;
 }
 
-export async function generateCards(notes: string): Promise<AICard[]> {
+export async function generateCards(notes: string, files?: Array<{ buffer: Buffer; mimetype: string; originalname?: string }>): Promise<AICard[]> {
   const provider = process.env.AI_PROVIDER || 'auto';
 
   // Try HF Space first if provider is auto or hf
   if (provider === 'auto' || provider === 'hf') {
     try {
-      const cards = await generateCardsHF(notes);
+      const cards = await generateCardsHF(notes, files);
       if (cards.length > 0) return cards;
     } catch (err) {
       console.error('HF Space failed:', err);
@@ -34,17 +34,18 @@ export async function generateCards(notes: string): Promise<AICard[]> {
   throw new Error('AI tidak tersedia');
 }
 
-async function generateCardsHF(notes: string): Promise<AICard[]> {
-  let hfSpaceUrl = process.env.HF_SPACE_ID || process.env.HF_SPACE_URL;
-  if (!hfSpaceUrl) {
-    // ponytail: HF_SPACE_ID optional when CF_PROXY_URL is set
-    hfSpaceUrl = '';
-  }
-
-  // ponytail: route through Cloudflare Worker proxy (Vercel cannot reach HF Space directly)
+async function generateCardsHF(notes: string, files?: Array<{ buffer: Buffer; mimetype: string; originalname?: string }>): Promise<AICard[]> {
   const url = (process.env.CF_PROXY_URL || 'https://your-worker.workers.dev') + '/v1/cards';
   const form = new FormData();
-  form.append('note_text', notes);
+  if (notes) form.append('note_text', notes);
+  // ponytail: forward image files as multipart 'files' field for OCR via HF Space
+  if (files && files.length > 0) {
+    for (const f of files) {
+      // ponytail: cast to any to satisfy BlobPart typing for FormData append
+      const blob = new Blob([new Uint8Array(f.buffer)], { type: f.mimetype });
+      form.append('files', blob, f.originalname || 'upload.jpg');
+    }
+  }
 
   const res = await fetch(url, { method: 'POST', body: form });
   if (!res.ok) {

@@ -114,7 +114,22 @@ export function deleteFlashcard(id: string) {
 }
 
 // AI Test
-export function testAI(notes: string) {
+export function testAI(notes: string, files?: File[]) {
+  // ponytail: support optional file upload (multipart when files present, JSON otherwise)
+  if (files && files.length > 0) {
+    const form = new FormData();
+    if (notes) form.append('catatan', notes);
+    for (const f of files) form.append('files', f);
+    return fetch('/api/test', {
+      method: 'POST',
+      credentials: 'include',
+      body: form,
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new ApiError(data.error || 'Gagal menghasilkan kartu', res.status);
+      return data;
+    });
+  }
   return apiFetch<{ cards: Array<{ judul: string; catatan: string }> }>('/test', {
     method: 'POST',
     body: { catatan: notes },
