@@ -8,11 +8,26 @@ const router = Router();
 // GET /api/flashcards - daftar kartu sendiri
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabase
+    let data: any[] | null = null;
+    let error: any = null;
+    const res1 = await supabase
       .from('kartu_belajar')
       .select('id, id_pengguna, judul, catatan, lampiran, sumber, kategori, dibuat_pada')
       .eq('id_pengguna', req.user!.id)
       .order('dibuat_pada', { ascending: false });
+    data = res1.data;
+    error = res1.error;
+
+    // ponytail: fall back if kategori column not yet added to DB
+    if (error && error.code === '42703') {
+      const res2 = await supabase
+        .from('kartu_belajar')
+        .select('id, id_pengguna, judul, catatan, lampiran, sumber, dibuat_pada')
+        .eq('id_pengguna', req.user!.id)
+        .order('dibuat_pada', { ascending: false });
+      data = res2.data;
+      error = res2.error;
+    }
 
     if (error) throw error;
 
@@ -66,9 +81,21 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       insertRow.kategori = category.trim();
     }
 
-    const { error: insertError } = await supabase
+    let insertError: any = null;
+    // ponytail: try with kategori first; if column missing (42703), fall back without it
+    const { error: err1 } = await supabase
       .from('kartu_belajar')
       .insert(insertRow);
+    insertError = err1;
+
+    if (insertError && insertError.code === '42703' && insertRow.kategori) {
+      console.warn('kategori column missing, falling back to insert without it');
+      const { kategori, ...withoutKategori } = insertRow;
+      const { error: err2 } = await supabase
+        .from('kartu_belajar')
+        .insert(withoutKategori);
+      insertError = err2;
+    }
 
     if (insertError) throw insertError;
 
