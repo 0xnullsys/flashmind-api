@@ -38,6 +38,12 @@ router.post(
         return;
       }
 
+      // ponytail: hard cap 5 images; AI OCR + category detect degrade past that
+      if (multipartFiles.length + fileUrls.length > 5) {
+        res.status(400).json({ error: 'Maksimal 5 lampiran' });
+        return;
+      }
+
       // ponytail: download URLs into multer-style file objects so HF upload path stays uniform
       const downloadedFiles: Array<{ buffer: Buffer; mimetype: string; originalname: string }> = [];
       for (const url of fileUrls.slice(0, 5)) {

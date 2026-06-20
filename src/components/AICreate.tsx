@@ -44,15 +44,22 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
     if (!list || list.length === 0) return;
     const next = [...files];
     const nextPreviews = [...previews];
+    let rejected = 0;
     for (let i = 0; i < list.length; i++) {
-      // ponytail: cap at 5 files; ignore extras silently
-      if (next.length >= 5) break;
+      // ponytail: cap at 5 files; ignore extras silently but surface if any rejected
+      if (next.length >= 5) {
+        rejected++;
+        continue;
+      }
       const file = list[i];
       next.push(file);
       nextPreviews.push(URL.createObjectURL(file));
     }
     setFiles(next);
     setPreviews(nextPreviews);
+    if (rejected > 0) {
+      setError(`Maksimal 5 gambar — ${rejected} dilewati`);
+    }
   };
 
   const removeFile = (idx: number) => {
