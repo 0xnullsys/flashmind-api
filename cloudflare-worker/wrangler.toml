@@ -1,0 +1,8 @@
+{
+  "name": "flashmind-hf-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  "vars": {
+    "HF_TARGET": "https://cfcc557d6y-flashmind-ai-services.hf.space"
+  }
+}

@@ -37,19 +37,12 @@ export async function generateCards(notes: string): Promise<AICard[]> {
 async function generateCardsHF(notes: string): Promise<AICard[]> {
   let hfSpaceUrl = process.env.HF_SPACE_ID || process.env.HF_SPACE_URL;
   if (!hfSpaceUrl) {
-    throw new Error('HF_SPACE_ID tidak dikonfigurasi');
+    // ponytail: HF_SPACE_ID optional when CF_PROXY_URL is set
+    hfSpaceUrl = '';
   }
 
-  // ponytail: accept full URL, page URL, or "username/space-name" format
-  let apiBase: string;
-  if (/^https?:\/\//.test(hfSpaceUrl)) {
-    const pageMatch = hfSpaceUrl.match(/^https?:\/\/huggingface\.co\/spaces\/([^/]+)\/?$/);
-    apiBase = pageMatch ? `https://${pageMatch[1]}.hf.space` : hfSpaceUrl.replace(/\/$/, '');
-  } else {
-    apiBase = `https://${hfSpaceUrl}.hf.space`;
-  }
-
-  const url = `${apiBase}/v1/cards`;
+  // ponytail: route through Cloudflare Worker proxy (Vercel cannot reach HF Space directly)
+  const url = (process.env.CF_PROXY_URL || 'https://your-worker.workers.dev') + '/v1/cards';
   const form = new FormData();
   form.append('note_text', notes);
 
