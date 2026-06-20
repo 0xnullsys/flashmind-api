@@ -97,7 +97,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       insertError = err2;
     }
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Create flashcard insertError:', JSON.stringify(insertError));
+      throw insertError;
+    }
 
     await addTrace('pengunjung_berakun', req.user!.id, 'card_create', '/api/flashcards', { cardId, category: insertRow.kategori });
 
