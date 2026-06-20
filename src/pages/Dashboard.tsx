@@ -16,6 +16,8 @@ export default function Dashboard() {
   const [showAI, setShowAI] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [error, setError] = useState('');
+  // ponytail: client-side category filter (no extra backend query)
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const loadCards = useCallback(async () => {
     try {
@@ -131,11 +133,52 @@ export default function Dashboard() {
         ) : cards.length === 0 ? (
           <div className="dashboard-empty">{t('dashboard.empty')}</div>
         ) : (
-          <div className="card-grid">
-            {cards.map((card) => (
-              <Flashcard key={card.id} card={card} onDelete={handleDelete} />
-            ))}
-          </div>
+          <>
+            {(() => {
+              // ponytail: derive category list + filtered cards in one pass
+              const categories = Array.from(
+                new Set(cards.map((c) => c.category).filter((c): c is string => !!c))
+              ).sort();
+              const filtered = activeCategory
+                ? cards.filter((c) => c.category === activeCategory)
+                : cards;
+              return (
+                <>
+                  {categories.length > 0 && (
+                    <div className="category-filter">
+                      <button
+                        className={`category-chip ${activeCategory === null ? 'active' : ''}`}
+                        onClick={() => setActiveCategory(null)}
+                      >
+                        Semua ({cards.length})
+                      </button>
+                      {categories.map((cat) => {
+                        const count = cards.filter((c) => c.category === cat).length;
+                        return (
+                          <button
+                            key={cat}
+                            className={`category-chip ${activeCategory === cat ? 'active' : ''}`}
+                            onClick={() => setActiveCategory(cat)}
+                          >
+                            {cat} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="card-grid">
+                    {filtered.length === 0 ? (
+                      <div className="dashboard-empty">Tidak ada kartu dalam kategori ini</div>
+                    ) : (
+                      filtered.map((card) => (
+                        <Flashcard key={card.id} card={card} onDelete={handleDelete} />
+                      ))
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </>
         )}
       </main>
 

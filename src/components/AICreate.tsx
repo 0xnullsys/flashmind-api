@@ -45,6 +45,8 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
     const next = [...files];
     const nextPreviews = [...previews];
     for (let i = 0; i < list.length; i++) {
+      // ponytail: cap at 5 files; ignore extras silently
+      if (next.length >= 5) break;
       const file = list[i];
       next.push(file);
       nextPreviews.push(URL.createObjectURL(file));
@@ -110,6 +112,7 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
         await createFlashcard({
           title: card.judul,
           notes: card.catatan,
+          category: (card as any).category,
           source: 'ai',
         });
       }
@@ -164,6 +167,7 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
               type="file"
               accept="image/*"
               capture="environment"
+              multiple
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
@@ -174,22 +178,25 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
                 className="btn btn-secondary btn-sm"
                 onClick={() => fileInputRef.current?.click()}
               >
-                📎 Unggah gambar
+                📎 Unggah gambar ({files.length}/5)
               </button>
-              {cameraAvailable === true && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => cameraInputRef.current?.click()}
-                >
-                  📷 Ambil foto
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={cameraAvailable === false || cameraAvailable === null}
+                title={
+                  cameraAvailable === false
+                    ? 'Kamera tidak terdeteksi pada perangkat ini'
+                    : cameraAvailable === null
+                    ? 'Mendeteksi kamera…'
+                    : 'Buka kamera untuk mengambil foto catatan'
+                }
+              >
+                {cameraAvailable === null ? '📷 Kamera…' : '📷 Ambil foto'}
+              </button>
               {cameraAvailable === false && (
-                <span className="ai-upload-hint">Kamera tidak terdeteksi</span>
-              )}
-              {cameraAvailable === null && (
-                <span className="ai-upload-hint">Mendeteksi kamera…</span>
+                <span className="ai-upload-hint">Kamera tidak terdeteksi pada perangkat ini</span>
               )}
             </div>
 
@@ -232,6 +239,9 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
                   <div className="ai-card-content">
                     <strong>{card.judul}</strong>
                     <p>{card.catatan}</p>
+                    {(card as any).category && (
+                      <span className="card-category-tag">{(card as any).category}</span>
+                    )}
                   </div>
                 </div>
               ))}

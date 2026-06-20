@@ -4,6 +4,23 @@
 interface AICard {
   judul: string;
   catatan: string;
+  category?: string;
+}
+
+// ponytail: lightweight keyword-based category detection; user can edit before save
+function detectCategory(text: string): string | undefined {
+  const t = text.toLowerCase();
+  if (/\b(sel|membran|organel|dna|rna|enzim|protein|fotosintesis|ekosistem|species)\b/.test(t)) return 'Biologi';
+  if (/\b(gaya|energi|listrik|magnet|gelombang|optik|newton|relativitas|kuantum|atom)\b/.test(t)) return 'Fisika';
+  if (/\b(reaksi|asam|basa|ikatan|kimia|larutan|mol|ph|oksidasi|reduksi)\b/.test(t)) return 'Kimia';
+  if (/\b(aljabar|geometri|kalkulus|persamaan|integral|turunan|matriks|vektor|probabilitas)\b/.test(t)) return 'Matematika';
+  if (/\b(grammar|vocabulary|english|tense|verb|noun|pronunciation|writing|speaking)\b/.test(t)) return 'Bahasa Inggris';
+  if (/\b(tata bahasa|eyd|puisi|cerpen|novel|indonesia|kata baku|imbuhan|prefiks|sufiks)\b/.test(t)) return 'Bahasa Indonesia';
+  if (/\b(perang|kemerdekaan|kerajaan|kolosal|nasionalisme|revolusi|sejarah)\b/.test(t)) return 'Sejarah';
+  if (/\b(geografi|iklim|curah hujan|populasi|wilayah|benua|samudra)\b/.test(t)) return 'Geografi';
+  if (/\b(pasar|inflasi|permintaan|penawaran|rupiah|saham|ekonomi|perdagangan|gdp|ekspor)\b/.test(t)) return 'Ekonomi';
+  if (/\b(javascript|python|react|api|variable|function|class|object|array|loop|database|sql|html|css|typescript)\b/.test(t)) return 'Pemrograman';
+  return undefined;
 }
 
 export async function generateCards(notes: string, files?: Array<{ buffer: Buffer; mimetype: string; originalname?: string }>): Promise<AICard[]> {
@@ -57,9 +74,12 @@ async function generateCardsHF(notes: string, files?: Array<{ buffer: Buffer; mi
   if (!data.cards || !Array.isArray(data.cards)) {
     throw new Error('HF Space returned unexpected JSON shape');
   }
+  // ponytail: detect category from full text so all cards share the same scope
+  const sharedCategory = detectCategory(notes + ' ' + (files?.map(f => f.originalname || '').join(' ') || ''));
   return data.cards.map((c) => ({
     judul: c.judul || c.question || 'Kartu',
     catatan: c.catatan || c.answer || '',
+    category: sharedCategory,
   })).filter((c) => c.judul || c.catatan);
 }
 
@@ -116,5 +136,6 @@ function normalizeCards(data: unknown): AICard[] {
   return cards.map((card) => ({
     judul: card.judul || card.title || card.front || 'Kartu',
     catatan: card.catatan || card.notes || card.back || '',
+    category: detectCategory(card.judul + ' ' + card.catatan + ' ' + notes),
   })).filter((card) => card.judul || card.catatan);
 }

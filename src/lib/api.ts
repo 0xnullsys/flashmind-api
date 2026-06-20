@@ -102,6 +102,7 @@ export function createFlashcard(data: {
   notes: string;
   attachments?: string[];
   source?: string;
+  category?: string;
 }) {
   return apiFetch<{ card: FlashCardData }>('/flashcards', {
     method: 'POST',
@@ -179,6 +180,7 @@ export interface FlashCardData {
   notes: string;
   attachments?: string[];
   source: string;
+  category?: string | null;
   createdAt: string;
 }
 

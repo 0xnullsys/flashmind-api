@@ -10,7 +10,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('kartu_belajar')
-      .select('id, id_pengguna, judul, catatan, lampiran, sumber, dibuat_pada')
+      .select('id, id_pengguna, judul, catatan, lampiran, sumber, kategori, dibuat_pada')
       .eq('id_pengguna', req.user!.id)
       .order('dibuat_pada', { ascending: false });
 
@@ -23,6 +23,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       notes: row.catatan,
       attachments: row.lampiran || [],
       source: row.sumber,
+      category: row.kategori || null,
       createdAt: row.dibuat_pada,
     }));
 
@@ -36,7 +37,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 // POST /api/flashcards - buat kartu
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { title, notes, attachments, source } = req.body;
+    const { title, notes, attachments, source, category } = req.body;
 
     if (!title || !notes) {
       res.status(400).json({ error: 'Wajib diisi' });
@@ -57,20 +58,26 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const cardId = uuidv4();
+    const insertRow: Record<string, unknown> = {
+      id: cardId,
+      id_pengguna: req.user!.id,
+      judul: title,
+      catatan: notes,
+      lampiran: attachments || [],
+      sumber: source || 'manual',
+    };
+    // ponytail: include kategori only if column exists; Supabase will 400 otherwise
+    if (category && typeof category === 'string' && category.trim()) {
+      insertRow.kategori = category.trim();
+    }
+
     const { error: insertError } = await supabase
       .from('kartu_belajar')
-      .insert({
-        id: cardId,
-        id_pengguna: req.user!.id,
-        judul: title,
-        catatan: notes,
-        lampiran: attachments || [],
-        sumber: source || 'manual',
-      });
+      .insert(insertRow);
 
     if (insertError) throw insertError;
 
-    await addTrace('pengunjung_berakun', req.user!.id, 'card_create', '/api/flashcards', { cardId });
+    await addTrace('pengunjung_berakun', req.user!.id, 'card_create', '/api/flashcards', { cardId, category: insertRow.kategori });
 
     res.status(201).json({
       card: {
@@ -80,6 +87,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         notes,
         attachments: attachments || [],
         source: source || 'manual',
+        category: insertRow.kategori || null,
         createdAt: new Date().toISOString(),
       },
     });
