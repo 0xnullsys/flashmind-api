@@ -71,7 +71,10 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
       onCreated();
       onClose();
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.status === 401) {
+        // ponytail: guests can't save cards — prompt to register
+        setError('Daftar atau masuk untuk menyimpan kartu');
+      } else if (err instanceof ApiError) {
         setError(err.message);
       } else {
         setError(t('error.serverError'));
