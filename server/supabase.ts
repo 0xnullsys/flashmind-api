@@ -16,7 +16,10 @@ function getClient(): SupabaseClient {
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be set in environment');
   }
-  _client = createClient(supabaseUrl, supabaseKey);
+  // ponytail: Vercel Node 20 lacks native WebSocket; pass `ws` so Supabase realtime works
+  _client = createClient(supabaseUrl, supabaseKey, {
+    global: { ws: /* @vite-ignore */ (globalThis as any).WebSocket ?? require('ws') },
+  });
   return _client;
 }
 
