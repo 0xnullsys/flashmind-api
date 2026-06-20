@@ -36,6 +36,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (role === 'user') {
       loadCards();
+    } else if (role === 'guest') {
+      // ponytail: guests have no cards to load — show empty state immediately
+      setLoading(false);
     }
   }, [role, loadCards]);
 
