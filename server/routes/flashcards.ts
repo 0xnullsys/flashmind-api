@@ -18,8 +18,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     data = res1.data;
     error = res1.error;
 
-    // ponytail: fall back if kategori column not yet added to DB
-    if (error && error.code === '42703') {
+    // ponytail: fall back if kategori column not yet added to DB (PGRST204 or 42703)
+    if (error && (error.code === '42703' || error.code === 'PGRST204')) {
       const res2 = await supabase
         .from('kartu_belajar')
         .select('id, id_pengguna, judul, catatan, lampiran, sumber, dibuat_pada')
@@ -82,13 +82,13 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     let insertError: any = null;
-    // ponytail: try with kategori first; if column missing (42703), fall back without it
+    // ponytail: try with kategori first; if column missing (PGRST204 or 42703), fall back without it
     const { error: err1 } = await supabase
       .from('kartu_belajar')
       .insert(insertRow);
     insertError = err1;
 
-    if (insertError && insertError.code === '42703' && insertRow.kategori) {
+    if (insertError && (insertError.code === '42703' || insertError.code === 'PGRST204') && insertRow.kategori) {
       console.warn('kategori column missing, falling back to insert without it');
       const { kategori, ...withoutKategori } = insertRow;
       const { error: err2 } = await supabase
