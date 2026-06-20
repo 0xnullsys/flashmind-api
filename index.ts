@@ -4,6 +4,7 @@ export const config = {
   },
 };
 
+import express from 'express';
 import app from './server/app';
 
 // Debug log to see what URL Vercel passes
