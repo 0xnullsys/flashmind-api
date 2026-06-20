@@ -25,9 +25,18 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// Health check (caller mounts under /api, so no prefix here)
-app.get('/health', (_req, res) => {
-  res.json({ ok: true });
+// GET /api/health
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
+// ponytail: debug-only endpoint, remove after Vercel HF connectivity confirmed
+app.get('/debug/hf', async (_req, res) => {
+  try {
+    const url = 'https://cfcc557d6y-flashmind-ai-services.hf.space/';
+    const r = await fetch(url, { method: 'GET' });
+    res.json({ status: r.status, ok: r.ok, url });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message, code: err?.cause?.code, hostname: err?.cause?.hostname });
+  }
 });
 
 // Routes (caller mounts under /api)
