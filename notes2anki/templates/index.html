@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Notes → Anki</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 16px}
+  h1{font-size:1.4rem}
+  form{border:2px dashed #999;padding:24px;border-radius:8px;text-align:center}
+  input[type=file]{margin:12px 0}
+  button{background:#2563eb;color:#fff;border:0;padding:10px 20px;border-radius:6px;cursor:pointer}
+  button:disabled{opacity:.5}
+  #log{margin-top:16px;white-space:pre-wrap;font-family:monospace;font-size:.9rem;background:#f4f4f5;padding:12px;border-radius:6px}
+</style>
+</head>
+<body>
+<h1>Notes → Anki</h1>
+<p>Upload gambar catatan. OCR (EasyOCR, Bahasa Indonesia), lalu generate kartu Q&A dan download .apkg.</p>
+<form id="f" method="post" action="/upload" enctype="multipart/form-data">
+  <input type="file" name="image" accept="image/*" multiple required><br>
+  <button type="submit">Proses &amp; Download</button>
+</form>
+<div id="log"></div>
+<script>
+  const f=document.getElementById('f'),log=document.getElementById('log');
+  f.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const fd=new FormData(f);
+    log.textContent='Memproses... (OCR pertama kali bisa 1-2 menit)';
+    f.querySelector('button').disabled=true;
+    try{
+      const r=await fetch('/upload',{method:'POST',body:fd});
+      if(!r.ok){const t=await r.text();log.textContent='Error: '+(t||r.statusText);return;}
+      const blob=await r.blob();
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download='notes2anki.apkg';a.click();
+      URL.revokeObjectURL(url);
+      log.textContent='Selesai. Deck di-download.';
+    }catch(err){log.textContent='Error: '+err.message;}
+    finally{f.querySelector('button').disabled=false;}
+  });
+</script>
+</body>
+</html>
