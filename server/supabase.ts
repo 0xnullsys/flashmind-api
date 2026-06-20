@@ -17,10 +17,9 @@ function getClient(): SupabaseClient {
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be set in environment');
   }
-  // ponytail: Vercel Node 20 lacks native WebSocket; pass `ws` so Supabase realtime works
+  // ponytail: Vercel Node 20 lacks native WebSocket; pass `ws` as realtime transport
   _client = createClient(supabaseUrl, supabaseKey, {
-    // @ts-expect-error - ws transport option not in public types
-    global: { ws: (globalThis as any).WebSocket ?? ws },
+    realtime: { transport: ws },
   });
   return _client;
 }
