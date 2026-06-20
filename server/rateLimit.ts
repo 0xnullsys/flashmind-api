@@ -9,6 +9,7 @@ const buckets = new Map<string, TokenBucket>();
 
 const RATE_LIMITS: Record<string, { maxTokens: number; refillRate: number; refillInterval: number }> = {
   default: { maxTokens: 100, refillRate: 100, refillInterval: 60_000 },
+  guest: { maxTokens: 5, refillRate: 5, refillInterval: 60_000 }, // ponytail: tight cap, dedupe handles reuse
   test: { maxTokens: 20, refillRate: 20, refillInterval: 60_000 },
 };
 

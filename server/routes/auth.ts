@@ -2,29 +2,47 @@ import { Router, Request, Response } from 'express';
 import { supabase, addTrace } from '../db.js';
 import { signToken, hashPassword, comparePassword } from '../auth.js';
 import { v4 as uuidv4 } from 'uuid';
+import { rateLimit } from '../rateLimit.js';
 
 const router = Router();
 
 // POST /api/auth/guest - Buat sesi tamu
-router.post('/guest', async (req: Request, res: Response) => {
+// ponytail: rate-limit + dedupe by IP within 60s to prevent spam clicks hammering the DB.
+router.post('/guest', rateLimit('guest'), async (req: Request, res: Response) => {
   try {
     const ip = req.ip || req.socket.remoteAddress || '0.0.0.0';
-    const guestId = uuidv4();
 
-    const { error: insertError } = await supabase
+    // Dedupe: reuse the most recent guest row from same IP created in last 60s.
+    const cutoff = new Date(Date.now() - 60_000).toISOString();
+    const { data: existing } = await supabase
       .from('tamu_penguji')
-      .insert({
-        id: guestId,
-        ip_address: ip,
-        jejak: [{
-          acara: 'guest_created',
-          rute: '/api/auth/guest',
-          pada: new Date().toISOString(),
-          meta: {},
-        }],
-      });
+      .select('id, jejak')
+      .eq('ip_address', ip)
+      .gte('dibuat_pada', cutoff)
+      .order('dibuat_pada', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (insertError) throw insertError;
+    let guestId: string;
+    if (existing) {
+      guestId = existing.id;
+    } else {
+      guestId = uuidv4();
+      const { error: insertError } = await supabase
+        .from('tamu_penguji')
+        .insert({
+          id: guestId,
+          ip_address: ip,
+          jejak: [{
+            acara: 'guest_created',
+            rute: '/api/auth/guest',
+            pada: new Date().toISOString(),
+            meta: {},
+          }],
+        });
+
+      if (insertError) throw insertError;
+    }
 
     const token = signToken(guestId, 'guest');
 
