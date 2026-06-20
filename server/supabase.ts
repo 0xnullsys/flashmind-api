@@ -18,7 +18,8 @@ function getClient(): SupabaseClient {
   }
   // ponytail: Vercel Node 20 lacks native WebSocket; pass `ws` so Supabase realtime works
   _client = createClient(supabaseUrl, supabaseKey, {
-    global: { ws: /* @vite-ignore */ (globalThis as any).WebSocket ?? require('ws') },
+    // @ts-expect-error - ws transport option not in public types
+    global: { ws: (globalThis as any).WebSocket ?? require('ws') },
   });
   return _client;
 }
