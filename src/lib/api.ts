@@ -110,25 +110,32 @@ export function createFlashcard(data: {
   });
 }
 
+// ponytail: upload image to Cloudinary via /api/uploads, get back secure URL
+export function uploadImage(file: File): Promise<{ url: string; publicId: string; width: number; height: number; bytes: number }> {
+  const form = new FormData();
+  form.append('file', file);
+  return fetch('/api/uploads', {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  }).then(async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(data.error || 'Upload gagal', res.status);
+    return data;
+  });
+}
+
 export function deleteFlashcard(id: string) {
   return apiFetch<{ ok: boolean }>(`/flashcards/${id}`, { method: 'DELETE' });
 }
 
 // AI Test
-export function testAI(notes: string, files?: File[]) {
-  // ponytail: support optional file upload (multipart when files present, JSON otherwise)
-  if (files && files.length > 0) {
-    const form = new FormData();
-    if (notes) form.append('catatan', notes);
-    for (const f of files) form.append('files', f);
-    return fetch('/api/test', {
+export function testAI(notes: string, fileUrls?: string[]) {
+  // ponytail: when file URLs provided, pass them as JSON for server-side download
+  if (fileUrls && fileUrls.length > 0) {
+    return apiFetch<{ cards: Array<{ judul: string; catatan: string }> }>('/test', {
       method: 'POST',
-      credentials: 'include',
-      body: form,
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new ApiError(data.error || 'Gagal menghasilkan kartu', res.status);
-      return data;
+      body: { catatan: notes, fileUrls },
     });
   }
   return apiFetch<{ cards: Array<{ judul: string; catatan: string }> }>('/test', {

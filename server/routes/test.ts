@@ -27,17 +27,35 @@ router.post(
   upload.any(),
   async (req: Request, res: Response) => {
     try {
-      // ponytail: accept both JSON body and multipart. Files forwarded to HF Space if present.
+      // ponytail: accept both JSON body and multipart. Files uploaded from client or
+      // referenced by Cloudinary URL; CF Worker forwards all to HF Space.
       const catatan = (req.body?.catatan as string) || '';
-      const files = (req.files as Express.Multer.File[] | undefined) || [];
+      const fileUrls = (req.body?.fileUrls as string[] | undefined) || [];
+      const multipartFiles = (req.files as Express.Multer.File[] | undefined) || [];
 
-      if (!catatan && files.length === 0) {
+      if (!catatan && multipartFiles.length === 0 && fileUrls.length === 0) {
         res.status(400).json({ error: 'Wajib diisi' });
         return;
       }
 
-      // ponytail: forward text+files to HF Space via CF Worker proxy
-      const cards = await generateCards(catatan, files);
+      // ponytail: download URLs into multer-style file objects so HF upload path stays uniform
+      const downloadedFiles: Array<{ buffer: Buffer; mimetype: string; originalname: string }> = [];
+      for (const url of fileUrls.slice(0, 5)) {
+        try {
+          const r = await fetch(url);
+          if (!r.ok) continue;
+          const ab = await r.arrayBuffer();
+          downloadedFiles.push({
+            buffer: Buffer.from(ab),
+            mimetype: r.headers.get('content-type') || 'image/jpeg',
+            originalname: url.split('/').pop() || 'remote.jpg',
+          });
+        } catch (err) {
+          console.error('Failed to download image URL:', url, err);
+        }
+      }
+
+      const cards = await generateCards(catatan, [...multipartFiles, ...downloadedFiles]);
 
       if (req.user) {
         await addTrace('pengunjung_berakun', req.user.id, 'test_ai', '/api/test', { cardCount: cards.length });

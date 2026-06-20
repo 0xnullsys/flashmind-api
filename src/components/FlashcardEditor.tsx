@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { t } from '../lib/id';
-import { createFlashcard, testAI, ApiError } from '../lib/api';
+import { createFlashcard, testAI, uploadImage, ApiError } from '../lib/api';
 
 interface FlashcardEditorProps {
   isOpen: boolean;
@@ -72,7 +72,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // ponytail: AI auto-fill title+notes from image(s); categories pulled from HF response when present
+  // ponytail: AI from images uploads to Cloudinary first, then passes URLs to backend
   const handleAiFromImages = async () => {
     if (files.length === 0) {
       setError('Unggah atau ambil foto catatan dulu');
@@ -81,7 +81,16 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     setError('');
     setAiLoading(true);
     try {
-      const result = await testAI('', files);
+      const urls: string[] = [];
+      for (const f of files) {
+        try {
+          const r = await uploadImage(f);
+          urls.push(r.url);
+        } catch (err) {
+          // skip individual failure
+        }
+      }
+      const result = await testAI('', urls);
       if (result.cards && result.cards.length > 0) {
         // ponytail: take first card as title+notes, ignore the rest (user can use AI dialog for batch)
         setTitle(result.cards[0].judul);
@@ -114,7 +123,17 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     if (files.length > 0 && (!finalTitle || !finalNotes)) {
       try {
         setAiLoading(true);
-        const result = await testAI('', files);
+        // ponytail: upload to Cloudinary, get URLs, then send to HF via backend
+        const urls: string[] = [];
+        for (const f of files) {
+          try {
+            const r = await uploadImage(f);
+            urls.push(r.url);
+          } catch (err) {
+            // skip
+          }
+        }
+        const result = await testAI('', urls);
         if (result.cards && result.cards.length > 0) {
           finalTitle = finalTitle || result.cards[0].judul;
           finalNotes = finalNotes || result.cards[0].catatan;
@@ -136,22 +155,22 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
 
     setLoading(true);
     try {
-      // ponytail: convert files to base64 attachments on save (lazy OCR already done above)
-      const atts: string[] = [];
+      // ponytail: upload each file to Cloudinary first; store URLs in lampiran[]
+      const uploadedUrls: string[] = [];
       for (const f of files) {
-        const b64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(f);
-        });
-        atts.push(b64);
+        try {
+          const result = await uploadImage(f);
+          uploadedUrls.push(result.url);
+        } catch (err) {
+          // ponytail: skip individual upload failures but keep going
+          console.error('Upload failed for file:', f.name, err);
+        }
       }
       await createFlashcard({
         title: finalTitle,
         notes: finalNotes,
         category: finalCategory || undefined,
-        attachments: atts,
+        attachments: uploadedUrls,
         source: 'manual',
       });
       setTitle('');

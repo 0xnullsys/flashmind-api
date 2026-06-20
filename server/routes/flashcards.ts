@@ -44,15 +44,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    // Validate attachments size (max 5 images, ~500KB total in base64)
+    // Validate attachments (URLs or paths stored in DB; size check skipped for URLs)
     if (attachments && Array.isArray(attachments)) {
       if (attachments.length > 5) {
         res.status(400).json({ error: 'Maksimal 5 lampiran' });
-        return;
-      }
-      const totalSize = attachments.reduce((sum: number, a: string) => sum + a.length, 0);
-      if (totalSize > 500_000) {
-        res.status(400).json({ error: 'Total ukuran lampiran terlalu besar' });
         return;
       }
     }

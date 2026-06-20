@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import flashcardRoutes from './routes/flashcards.js';
 import testRoutes from './routes/test.js';
+import uploadRoutes from './routes/uploads.js';
 import v0Routes from './routes/v0.js';
 
 const app = express();
@@ -33,6 +34,7 @@ app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/flashcards', flashcardRoutes);
 app.use('/test', testRoutes);
+app.use('/uploads', uploadRoutes);
 app.use('/v0', v0Routes);
 
 // Seed admin if configured and DB is empty (skip on Vercel cold start to avoid blocking)

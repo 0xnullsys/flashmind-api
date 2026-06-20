@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { t } from '../lib/id';
-import { testAI, createFlashcard, ApiError } from '../lib/api';
+import { testAI, createFlashcard, uploadImage, ApiError } from '../lib/api';
 
 interface AICreateProps {
   isOpen: boolean;
@@ -65,6 +65,8 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
     setPreviews(nextPreviews);
   };
 
+  // ponytail: AI from images uploads to Cloudinary first (no base64 in DB), then
+  // passes URLs to backend which downloads them and forwards to HF Space for OCR.
   const handleGenerate = async () => {
     if (!notes && files.length === 0) {
       setError(t('error.required'));
@@ -76,7 +78,22 @@ export default function AICreate({ isOpen, onClose, onCreated }: AICreateProps) 
     setGeneratedCards([]);
 
     try {
-      const result = await testAI(notes, files);
+      // ponytail: upload to Cloudinary when there are files; pass URLs not base64
+      let fileUrls: string[] = [];
+      if (files.length > 0) {
+        for (const f of files) {
+          try {
+            const r = await uploadImage(f);
+            fileUrls.push(r.url);
+          } catch (err) {
+            if (err instanceof ApiError) {
+              throw err; // surface 401 to guest
+            }
+            // skip individual upload failure, keep going
+          }
+        }
+      }
+      const result = await testAI(notes, fileUrls);
       setGeneratedCards(result.cards);
       setSelectedCards(new Set(result.cards.map((_c: { judul: string; catatan: string }, i: number) => i)));
     } catch (err) {
