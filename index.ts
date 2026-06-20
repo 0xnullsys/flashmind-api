@@ -10,11 +10,11 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 
-import authRoutes from '../server/routes/auth.js';
-import userRoutes from '../server/routes/users.js';
-import flashcardRoutes from '../server/routes/flashcards.js';
-import testRoutes from '../server/routes/test.js';
-import v0Routes from '../server/routes/v0.js';
+import authRoutes from './server/routes/auth.js';
+import userRoutes from './server/routes/users.js';
+import flashcardRoutes from './server/routes/flashcards.js';
+import testRoutes from './server/routes/test.js';
+import v0Routes from './server/routes/v0.js';
 
 const app = express();
 
