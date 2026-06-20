@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import ws from 'ws';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
@@ -19,7 +20,7 @@ function getClient(): SupabaseClient {
   // ponytail: Vercel Node 20 lacks native WebSocket; pass `ws` so Supabase realtime works
   _client = createClient(supabaseUrl, supabaseKey, {
     // @ts-expect-error - ws transport option not in public types
-    global: { ws: (globalThis as any).WebSocket ?? require('ws') },
+    global: { ws: (globalThis as any).WebSocket ?? ws },
   });
   return _client;
 }
