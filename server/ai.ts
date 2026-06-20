@@ -36,9 +36,20 @@ export async function generateCards(notes: string): Promise<AICard[]> {
 }
 
 async function generateCardsHF(notes: string): Promise<AICard[]> {
-  const hfSpaceUrl = process.env.HF_SPACE_ID;
+  let hfSpaceUrl = process.env.HF_SPACE_ID;
   if (!hfSpaceUrl) {
     throw new Error('HF_SPACE_ID tidak dikonfigurasi');
+  }
+
+  // ponytail: accept either full URL or "username/space-name" format
+  if (/^https?:\/\//.test(hfSpaceUrl)) {
+    // Translate HF page URL to API subdomain when needed
+    const pageMatch = hfSpaceUrl.match(/^https?:\/\/huggingface\.co\/spaces\/([^/]+)\/?$/);
+    if (pageMatch) {
+      hfSpaceUrl = `https://${pageMatch[1]}.hf.space`;
+    }
+  } else {
+    hfSpaceUrl = `https://${hfSpaceUrl}.hf.space`;
   }
 
   // Build multipart form-data (matches the Space's POST /)
