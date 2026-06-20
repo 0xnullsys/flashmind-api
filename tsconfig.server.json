@@ -8,8 +8,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "composite": true,
+    "outDir": "./dist-server",
+    "tsBuildInfoFile": "./dist-server/.tsbuildinfo",
+    "declaration": true
   },
   "include": ["server", "api"]
 }

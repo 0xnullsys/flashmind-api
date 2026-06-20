@@ -1,18 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import 'jquery-scrollify';
 import { t } from '../lib/id';
 import { useAuth } from '../lib/auth';
 import AuthDialog from '../components/AuthDialog';
 
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, visible };
+}
+
 export default function Landing() {
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const { role, createGuest } = useAuth();
+  const { createGuest } = useAuth();
   const [demoFlipped, setDemoFlipped] = useState(false);
+  const [heroLoaded, setHeroLoaded] = useState(false);
 
-  const handleOpenAuth = (mode: 'login' | 'register') => {
-    setAuthMode(mode);
-    setAuthOpen(true);
-  };
+  useEffect(() => {
+    setHeroLoaded(true);
+
+    const initScrollify = () => {
+      try {
+        const jq = (window as any).$;
+        if (jq && jq.scrollify) {
+          jq.scrollify({
+            section: 'section',
+            sectionName: false,
+            interstitialSection: '',
+            easing: 'easeOutExpo',
+            scrollSpeed: 1100,
+            offset: 0,
+            scrollbars: true,
+            setHeights: true,
+            overflowScroll: true,
+            updateHash: false,
+            touchScroll: true,
+            before: function (index: number) {
+              // optional: logic before scroll
+            },
+            after: function (index: number) {
+              // optional: logic after scroll
+            },
+            afterResize: function () {
+              // optional: refresh after resize
+            },
+            afterRender: function () {
+              // optional
+            },
+          });
+        }
+      } catch (err) {
+        // ignore if jquery-scrollify is unavailable
+      }
+    };
+
+    initScrollify();
+
+    return () => {
+      try {
+        const jq = (window as any).$;
+        if (jq && jq.scrollify) {
+          jq.scrollify.destroy();
+        }
+      } catch {
+        // ignore cleanup errors
+      }
+    };
+  }, []);
+
+  const heroReveal = useScrollReveal();
+  const demoReveal = useScrollReveal();
+  const howItHelpsReveal = useScrollReveal();
+  const researchReveal = useScrollReveal();
+  const ctaReveal = useScrollReveal();
 
   const handleGuestTry = async () => {
     await createGuest();
@@ -22,21 +101,21 @@ export default function Landing() {
   return (
     <div className="landing">
       {/* Hero */}
-      <section className="hero">
-        <div className="hero-content">
+      <section className={`hero ${heroLoaded ? 'hero-loaded' : ''}`}>
+        <div className="hero-content animate-fade-in-up">
           <h1 className="hero-title">{t('appName')}</h1>
           <p className="hero-tagline">{t('tagline')}</p>
 
           <div className="hero-cta">
             <button
               className="btn btn-primary btn-lg"
-              onClick={() => handleOpenAuth('login')}
+              onClick={handleGuestTry}
             >
               {t('hero.ctaLogin')}
             </button>
             <button
               className="btn btn-secondary btn-lg"
-              onClick={() => handleOpenAuth('register')}
+              onClick={() => setAuthOpen(true)}
             >
               {t('hero.ctaRegister')}
             </button>
@@ -52,11 +131,8 @@ export default function Landing() {
         </div>
 
         {/* Demo flip card */}
-        <div className="hero-demo">
-          <div
-            className={`demo-card ${demoFlipped ? 'flipped' : ''}`}
-            onClick={() => setDemoFlipped(!demoFlipped)}
-          >
+        <div className={`hero-demo animate-fade-in-up animate-delay-300 ${demoFlipped ? 'demo-flipped' : ''}`}>
+          <div className="demo-card-wrapper" onClick={() => setDemoFlipped(!demoFlipped)}>
             <div className="demo-card-inner">
               <div className="demo-card-front">
                 <h3>React Hooks</h3>
@@ -70,27 +146,27 @@ export default function Landing() {
       </section>
 
       {/* How it helps */}
-      <section className="section">
-        <div className="section-content">
+      <section className="section" ref={howItHelpsReveal.ref as React.Ref<HTMLDivElement>}>
+        <div className={`section-content ${howItHelpsReveal.visible ? 'animate-slide-up visible' : ''}`}>
           <h2>{t('hero.howItHelps')}</h2>
           <p>{t('hero.howItHelpsBody')}</p>
         </div>
       </section>
 
       {/* Research */}
-      <section className="section section-alt">
-        <div className="section-content">
+      <section className="section section-alt" ref={researchReveal.ref as React.Ref<HTMLDivElement>}>
+        <div className={`section-content ${researchReveal.visible ? 'animate-slide-up visible' : ''}`}>
           <h2>{t('hero.research')}</h2>
           <div className="research-cards">
-            <div className="research-item">
+            <div className="research-item animate-slide-up-stagger" style={{ transitionDelay: '0ms' }}>
               <h3>Aktif Recall</h3>
               <p>Mengingat informasi secara aktif memperkuat jalur saraf dan meningkatkan retensi jangka panjang.</p>
             </div>
-            <div className="research-item">
+            <div className="research-item animate-slide-up-stagger" style={{ transitionDelay: '150ms' }}>
               <h3>Spaced Repetition</h3>
               <p>Meninjau materi pada interval yang semakin meningkat mengoptimalkan memori jangka panjang.</p>
             </div>
-            <div className="research-item">
+            <div className="research-item animate-slide-up-stagger" style={{ transitionDelay: '300ms' }}>
               <h3>Metode Kartu Belajar</h3>
               <p>Studi menunjukkan bahwa kartu belajar adalah salah satu alat belajar paling efektif yang tersedia.</p>
             </div>
@@ -99,13 +175,13 @@ export default function Landing() {
       </section>
 
       {/* Final CTA */}
-      <section className="section cta-final">
-        <div className="section-content">
+      <section className="section cta-final" ref={ctaReveal.ref as React.Ref<HTMLDivElement>}>
+        <div className={`section-content ${ctaReveal.visible ? 'animate-slide-up visible' : ''}`}>
           <h2>{t('hero.ctaDontWait')}</h2>
           <div className="hero-cta">
             <button
               className="btn btn-primary btn-lg"
-              onClick={() => handleOpenAuth('register')}
+              onClick={() => setAuthOpen(true)}
             >
               {t('hero.ctaRegister')}
             </button>
