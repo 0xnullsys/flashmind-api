@@ -211,7 +211,9 @@ router.get('/config', (_req: Request, res: Response) => {
 // GET /api/auth/google
 router.get('/google', (_req: Request, res: Response) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/auth/google/callback';
+  // ponytail: prefer explicit env var; in production default to the deployed callback path
+  const callbackUrl = process.env.GOOGLE_CALLBACK_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/api/auth/google/callback` : 'http://localhost:3001/api/auth/google/callback');
 
   if (!clientId) {
     res.status(501).json({ error: 'Google OAuth tidak dikonfigurasi' });
