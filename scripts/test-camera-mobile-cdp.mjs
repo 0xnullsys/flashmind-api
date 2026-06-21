@@ -6,7 +6,7 @@ import CDP from 'chrome-remote-interface';
 import fs from 'fs';
 
 const PREVIEW_URL = 'https://flashmind-ivydiz2ht-alif-fakhrurrozy-6516s-projects.vercel.app';
-const BYPASS_TOKEN = '[REDACTED-vercel-bypass]';
+const BYPASS_TOKEN = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '';
 const LOGIN_EMAIL = 'rls-test@flash.com';
 const LOGIN_PASSWORD = 'rlstest123';
 

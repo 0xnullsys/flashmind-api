@@ -24,3 +24,9 @@ test-local.ts
 *~
 .DS_Store
 Thumbs.db
+
+# ponytail: local secrets/scratch files (defensive layer)
+# Real secrets go in .env (gitignored) or Vercel project env, never in tracked files
+**/secrets.local.*
+**/*.local.json
+.env*.local

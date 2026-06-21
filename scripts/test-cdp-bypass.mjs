@@ -6,7 +6,7 @@ await Network.enable();
 await Network.setCacheDisabled({ cacheDisabled: true });
 
 // Try setting the bypass as a query string in URL (Vercel accepts ?x-vercel-protection-bypass=TOKEN)
-const URL = 'https://flashmind-48v0bx7m4-alif-fakhrurrozy-6516s-projects.vercel.app/?x-vercel-protection-bypass=[REDACTED-vercel-bypass]';
+const URL = `https://flashmind-48v0bx7m4-alif-fakhrurrozy-6516s-projects.vercel.app/?x-vercel-protection-bypass=${process.env.VERCEL_AUTOMATION_BYPASS_SECRET || ''}`;
 await Page.navigate({ url: URL });
 await Page.loadEventFired();
 await new Promise(r => setTimeout(r, 3000));

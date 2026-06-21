@@ -14,9 +14,9 @@ import { v2 as cloudinary } from 'cloudinary';
 
 // 1. Configure Cloudinary — inline credentials (no .env)
 cloudinary.config({
-  cloud_name: '[REDACTED-cloudinary-cloud-name]',    // ← replace this
-  api_key: '[REDACTED-cloudinary-api-key]',   // ← replace this
-  api_secret: '[REDACTED-cloudinary-secret]', // ← replace this
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,    // ← replace this
+  api_key: process.env.CLOUDINARY_API_KEY,   // ← replace this
+  api_secret: process.env.CLOUDINARY_API_SECRET, // ← replace this
   secure: true,
 });
 

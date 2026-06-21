@@ -4,7 +4,7 @@ const { Page, Runtime, Network, Emulation } = client;
 await Page.enable();
 await Runtime.enable();
 await Network.enable();
-await Network.setExtraHTTPHeaders({ headers: { 'x-vercel-protection-bypass': '[REDACTED-vercel-bypass]' } });
+await Network.setExtraHTTPHeaders({ headers: { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '' } });
 await Emulation.setDeviceMetricsOverride({ width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
 await Page.navigate({ url: 'https://flashmind-48v0bx7m4-alif-fakhrurrozy-6516s-projects.vercel.app/' });

@@ -1,0 +1,28 @@
+feat(ui): remove all emojis from UI
+
+User feedback: text-only UI, no emoji icons.
+
+Removed emojis:
+- 📷 Ambil Foto Catatan → Ambil Foto Catatan (CameraCaptureModal title)
+- ⚙️ DevBanner icon → removed
+- ✎ / 🗑 flashcard buttons → Edit / Hapus (text, pill style)
+- 📎 Unggah gambar → Unggah gambar
+- 📷 Ambil foto / Memeriksa → Ambil foto / Memeriksa kamera
+- ✨ Hasilkan Kartu → Hasilkan Kartu
+- ✓ Simpan → Simpan
+- ⚠️ warning → text-only
+- ✏️ Edit → Edit
+- 💾 Simpan N Kartu → Simpan N Kartu
+- ✨ Buat dengan AI (i18n orphan) → Buat dengan AI
+- 📚 Dashboard category icon → removed
+
+Updated tests to match new text:
+- FlashcardEditor.camera.test.tsx: '📷 Ambil foto' → 'Ambil foto'
+- FlashcardEditor.test.tsx: /^✓ Simpan$/i → /^Simpan$/i
+
+Kept charLimits.test.ts emojis (👋🌍): they test Unicode counting, not UI.
+
+CSS update: flashcard-edit/delete buttons changed from circular (32x32) to pill shape
+(width auto, min-width 32px, padding 0.6rem horizontal) to accommodate text.
+
+Tests: 48/48 pass

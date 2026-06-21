@@ -5,7 +5,7 @@ import CDP from 'chrome-remote-interface';
 import fs from 'fs';
 
 const PREVIEW_URL = 'https://flashmind-ay2iyrhs1-alif-fakhrurrozy-6516s-projects.vercel.app';
-const BYPASS_TOKEN = '[REDACTED-vercel-bypass]';
+const BYPASS_TOKEN = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '';
 
 async function main() {
   let client;
