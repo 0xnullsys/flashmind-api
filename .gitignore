@@ -16,3 +16,4 @@ hf-space-source
 # Use `git add -f` to force-add on dev if needed
 scripts/test-*.mjs
 scripts/debug-*.mjs
+test-local.ts
