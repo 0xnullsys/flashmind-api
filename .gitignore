@@ -8,7 +8,6 @@ docs/api
 SPEC.md
 index.md
 .atl
-.env.example
 .vercel
 hf-space-source
 
@@ -17,3 +16,11 @@ hf-space-source
 scripts/test-*.mjs
 scripts/debug-*.mjs
 test-local.ts
+
+# ponytail: backup files and editor noise
+*.bak
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
