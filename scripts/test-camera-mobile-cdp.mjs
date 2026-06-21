@@ -5,7 +5,7 @@
 import CDP from 'chrome-remote-interface';
 import fs from 'fs';
 
-const PREVIEW_URL = 'https://flashmind-8nr6sgo5y-alif-fakhrurrozy-6516s-projects.vercel.app';
+const PREVIEW_URL = 'https://flashmind-jzeg30w0y-alif-fakhrurrozy-6516s-projects.vercel.app';
 const BYPASS_TOKEN = '[REDACTED-vercel-bypass]';
 const LOGIN_EMAIL = 'rls-test@flash.com';
 const LOGIN_PASSWORD = 'rlstest123';
@@ -129,7 +129,8 @@ async function main() {
         const video = modal.querySelector('.camera-modal-video');
         const videoRect = video ? video.getBoundingClientRect() : null;
         const heading = Array.from(modal.querySelectorAll('h2')).find(h => h.textContent.includes('Ambil Foto Catatan'));
-        const captureBtn = Array.from(modal.querySelectorAll('button')).find(b => b.textContent.includes('📸'));
+        // ponytail: shutter button has no text/emoji — query by class
+        const captureBtn = document.querySelector('.camera-capture-btn');
         const cancelBtn = Array.from(modal.querySelectorAll('button')).find(b => b.textContent.includes('Batal'));
         return {
           modal: { width: rect.width, height: rect.height, top: rect.top, left: rect.left },
@@ -174,9 +175,12 @@ async function main() {
       if (m.captureBtnVisible) {
         const captureRect = await Runtime.evaluate({
           expression: `(() => {
-            const btn = Array.from(document.querySelectorAll('.camera-modal button')).find(b => b.textContent.includes('📸'));
+            // ponytail: shutter has no text/emoji — query by class
+            const btn = document.querySelector('.camera-capture-btn');
+            if (!btn) return null;
             const rect = btn.getBoundingClientRect();
-            return { width: rect.width, height: rect.height };
+            const cs = window.getComputedStyle(btn);
+            return { width: rect.width, height: rect.height, borderRadius: cs.borderRadius };
           })()`,
           returnByValue: true,
         });
@@ -191,7 +195,8 @@ async function main() {
       if (m.captureBtnVisible) {
         const captureStyle = await Runtime.evaluate({
           expression: `(() => {
-            const btn = Array.from(document.querySelectorAll('.camera-modal button')).find(b => b.textContent.trim() === '📸');
+            // ponytail: shutter has CSS-only icon (no text content); query by class
+            const btn = document.querySelector('.camera-capture-btn');
             if (!btn) return null;
             const cs = window.getComputedStyle(btn);
             const rect = btn.getBoundingClientRect();
@@ -199,8 +204,7 @@ async function main() {
               borderRadius: cs.borderRadius,
               width: rect.width,
               height: rect.height,
-              fontSize: cs.fontSize,
-              hasOnlyEmoji: btn.textContent.trim().length <= 2,
+              hasOnlyEmoji: btn.textContent.trim() === '',
             };
           })()`,
           returnByValue: true,
@@ -211,23 +215,28 @@ async function main() {
             `border-radius=${s.borderRadius}`);
           log('Shutter button large (≥64px)', s.width >= 64 && s.height >= 64,
             `${s.width}x${s.height}px`);
-          log('Shutter button has only emoji (no text)', s.hasOnlyEmoji, `text="${captureStyle ? '' : ''}"`);
+          log('Shutter button has no text/emoji', s.hasOnlyEmoji);
         }
 
         // ponytail: verify button position relative to viewport (bottom in portrait)
         const buttonPosition = await Runtime.evaluate({
           expression: `(() => {
-            const btn = Array.from(document.querySelectorAll('.camera-modal button')).find(b => b.textContent.trim() === '📸');
+            // ponytail: shutter has CSS-only icon (no text content); query by class
+            const btn = document.querySelector('.camera-capture-btn');
             if (!btn) return null;
             const rect = btn.getBoundingClientRect();
             const vh = window.innerHeight;
             const distanceFromBottom = vh - rect.bottom;
-            const distanceFromLeft = rect.left + rect.width / 2 - window.innerWidth / 2;
+            const shutterCenterX = rect.left + rect.width / 2;
+            const viewportCenterX = window.innerWidth / 2;
+            const distanceFromCenterX = Math.abs(shutterCenterX - viewportCenterX);
             return {
               distanceFromBottom,
-              distanceFromLeft: Math.abs(distanceFromLeft),
+              distanceFromCenterX,
               vh,
               vw: window.innerWidth,
+              text: btn.textContent.trim(),
+              hasInnerDot: !!window.getComputedStyle(btn, '::before').content,
             };
           })()`,
           returnByValue: true,
@@ -236,8 +245,12 @@ async function main() {
         if (pos) {
           log('Portrait: shutter near bottom (within 100px of bottom)', pos.distanceFromBottom < 100,
             `distanceFromBottom=${pos.distanceFromBottom.toFixed(0)}px`);
-          log('Portrait: shutter horizontally centered', pos.distanceFromLeft < 50,
-            `off-center=${pos.distanceFromLeft.toFixed(0)}px`);
+          log('Portrait: shutter horizontally centered (within 10px)', pos.distanceFromCenterX < 10,
+            `off-center=${pos.distanceFromCenterX.toFixed(0)}px`);
+          log('Portrait: shutter has no text/emoji content', pos.text === '',
+            `text="${pos.text}"`);
+          log('Portrait: shutter has CSS inner dot (::before)', pos.hasInnerDot && pos.hasInnerDot !== 'none',
+            `::before content=${pos.hasInnerDot}`);
         }
       }
     } else {
@@ -254,17 +267,30 @@ async function main() {
     await Emulation.setDeviceMetricsOverride({
       width: 844, height: 390, deviceScaleFactor: 3, mobile: true,
     });
+    // ponytail: clear feature overrides so device-pixel-ratio matches
+    await Emulation.clearDeviceMetricsOverride();
+    await Emulation.setDeviceMetricsOverride({
+      width: 844, height: 390, deviceScaleFactor: 3, mobile: true,
+    });
     await Page.setLifecycleEventsEnabled({ enabled: true });
     // Force layout reflow + media query re-evaluation
     await Runtime.evaluate({ expression: `window.dispatchEvent(new Event('resize')); window.dispatchEvent(new Event('orientationchange'));`, returnByValue: true });
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 2500));
+
+    // Debug: check orientation
+    const orientDebug = await Runtime.evaluate({
+      expression: `JSON.stringify({ w: window.innerWidth, h: window.innerHeight, portrait: window.matchMedia('(orientation: portrait)').matches, landscape: window.matchMedia('(orientation: landscape)').matches })`,
+      returnByValue: true,
+    });
+    console.log(`  Orientation debug: ${orientDebug.result.value}`);
 
     const landscapeMeasure = await Runtime.evaluate({
       expression: `(() => {
         const modal = document.querySelector('.camera-modal');
         if (!modal) return null;
         const rect = modal.getBoundingClientRect();
-        const shutterBtn = Array.from(modal.querySelectorAll('button')).find(b => b.textContent.trim() === '📸');
+        // ponytail: shutter button has no text/emoji — query by class
+        const shutterBtn = document.querySelector('.camera-capture-btn');
         const shutterRect = shutterBtn ? shutterBtn.getBoundingClientRect() : null;
         return {
           modal: { width: rect.width, height: rect.height, left: rect.left },
