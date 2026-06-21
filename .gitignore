@@ -9,3 +9,8 @@ index.md
 .env.example
 .vercel
 hf-space-source
+
+# ponytail: test/debug scripts live on dev only, never on main
+# Use `git add -f` to force-add on dev if needed
+scripts/test-*.mjs
+scripts/debug-*.mjs
