@@ -1,6 +1,6 @@
 # FlashMind HF Space — /v1/cards handler
 # Drop-in replacement: replace your existing `v1_cards_json` with this.
-# Requires `qa.py` from notes2anki/ in same dir (it does).
+# Requires `qa_heuristic.py` and `ocr_router.py` from this repo in same dir.
 
 @app.post("/v1/cards")
 def v1_cards_json():
@@ -19,7 +19,8 @@ def v1_cards_json():
         "count": 1
       }
     """
-    from qa import generate as qa_generate  # ponytail: lazy import so existing app.py keeps working
+    from qa_heuristic import generate as qa_generate  # ponytail: pattern-based Q/A (no LLM)
+    from ocr_router import extract_text  # ponytail: dynamic OCR (EasyOCR or TrOCR)
 
     combined_text = ""
 
@@ -33,7 +34,7 @@ def v1_cards_json():
                 file_path = os.path.join(UPLOAD_FOLDER, file.filename)
                 file.save(file_path)
                 try:
-                    extracted_text = extract_text_from_image(file_path)
+                    extracted_text = extract_text(file_path)
                     if extracted_text:
                         combined_text += extracted_text + "\n"
                 except Exception as e:
@@ -45,9 +46,8 @@ def v1_cards_json():
     if not combined_text.strip():
         return jsonify({"error": "empty_input"}), 400
 
-    # ponytail: use proper heuristic that returns real Q/A from text,
-    # not hardcoded "front"/"back"
+    # ponytail: qa_heuristic returns {front, back} dicts; map to {question, answer}
     pairs = qa_generate(combined_text)
-    cards = [{"question": p["question"], "answer": p["answer"]} for p in pairs]
+    cards = [{"question": p["front"], "answer": p["back"]} for p in pairs]
 
     return jsonify({"cards": cards, "count": len(cards)})
