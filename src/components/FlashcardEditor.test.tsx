@@ -143,7 +143,7 @@ describe('FlashcardEditor (Issue #21: no title input, AI integrated)', () => {
     const user = userEvent.setup();
     const longAnswer = 'A'.repeat(600); // over MAX_BACK_CHARS=500
     vi.mocked(testAI).mockResolvedValue({
-      cards: [{ question: 'Apa X?', answer: longAnswer }],
+      cards: [{ judul: 'Apa X?', catatan: longAnswer }],
     });
 
     render(<FlashcardEditor isOpen={true} onClose={onClose} onCreated={onCreated} />);

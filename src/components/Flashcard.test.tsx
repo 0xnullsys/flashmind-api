@@ -19,16 +19,17 @@ describe('Flashcard (Issue #20: wordwrap)', () => {
     createdAt: '2026-06-21T00:00:00Z',
   };
 
-  it('renders front title in <h3> with wordwrap class chain (h3 inside .flashcard-front)', () => {
+  it('renders front title in <p> with .flashcard-text class (Twitter-style typography)', () => {
     // ponytail: jsdom doesn't compute layout but we verify CSS class chain
-    // (.flashcard > .flashcard-front > h3) drives the wordwrap CSS rules.
+    // (.flashcard > .flashcard-front > .flashcard-text) drives the typography.
     render(<Flashcard card={baseCard} onDelete={() => {}} />);
-    const h3 = screen.getByRole('heading', { level: 3 });
-    expect(h3).toBeInTheDocument();
-    expect(h3.textContent).toBe(baseCard.title);
-    expect(h3.parentElement).toHaveClass('flashcard-front');
-    // ponytail: DOM has .flashcard > .flashcard-inner > .flashcard-front > h3
-    expect(h3.parentElement?.parentElement).toHaveClass('flashcard-inner');
+    const text = screen.getByText(baseCard.title);
+    expect(text).toBeInTheDocument();
+    expect(text.tagName).toBe('P');
+    expect(text).toHaveClass('flashcard-text');
+    expect(text.parentElement).toHaveClass('flashcard-front');
+    // ponytail: DOM has .flashcard > .flashcard-inner > .flashcard-front > .flashcard-text
+    expect(text.parentElement?.parentElement).toHaveClass('flashcard-inner');
   });
 
   it('back paragraph contains notes text', () => {
@@ -40,7 +41,10 @@ describe('Flashcard (Issue #20: wordwrap)', () => {
 
   it('displays category badge when card has category', () => {
     render(<Flashcard card={baseCard} onDelete={() => {}} />);
-    expect(screen.getByText('Biologi')).toBeInTheDocument();
+    // ponytail: category shows on both front (top) and back (bottom)
+    const badges = screen.getAllByText('Biologi');
+    expect(badges.length).toBeGreaterThanOrEqual(1);
+    badges.forEach((b) => expect(b).toHaveClass('card-category-tag'));
   });
 
   it('omits category badge when card has no category', () => {
