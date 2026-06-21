@@ -1562,8 +1562,8 @@ p {
 }
 
 .camera-modal {
+  width: 100%;
   max-width: 720px;
-  width: 95vw;
   max-height: 95vh;
   display: flex;
   flex-direction: column;
