@@ -1,6 +1,0 @@
-# ponytail: minimal stack. Flask upload + EasyOCR (Bahasa) + heuristic Q&A + genanki deck.
-flask>=3.0
-easyocr>=1.7
-genanki>=0.13
-Pillow>=10.0
-numpy<2

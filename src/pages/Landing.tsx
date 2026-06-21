@@ -180,10 +180,10 @@ export default function Landing() {
 
           <div className="hero-cta">
             <button className="btn btn-primary btn-lg" onClick={() => setAuthOpen(true)}>
-              {t('hero.ctaRegister')}
+              {role === 'user' ? t('hero.ctaLogin') : t('hero.ctaRegister')}
             </button>
             <button className="btn btn-ghost btn-lg" onClick={handleGuestTry}>
-              {t('hero.ctaGuest')}
+              {role === 'user' ? t('hero.ctaOpenDashboard') : t('hero.ctaGuest')}
             </button>
           </div>
         </div>
@@ -299,10 +299,10 @@ export default function Landing() {
 
           <div className="hero-cta">
             <button className="btn btn-primary btn-lg" onClick={() => setAuthOpen(true)}>
-              {t('hero.ctaRegister')}
+              {role === 'user' ? t('hero.ctaLogin') : t('hero.ctaRegister')}
             </button>
             <button className="btn btn-ghost btn-lg" onClick={handleGuestTry}>
-              {t('hero.ctaLogin')}
+              {role === 'user' ? t('hero.ctaOpenDashboard') : t('hero.ctaLogin')}
             </button>
           </div>
         </div>

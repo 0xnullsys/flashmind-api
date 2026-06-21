@@ -5,6 +5,7 @@ const id = {
   'hero.ctaLogin': 'Masuk untuk uji coba!',
   'hero.ctaRegister': 'Daftar untuk membuat akun baru',
   'hero.ctaGuest': 'Masuk uji coba (tamu)',
+  'hero.ctaOpenDashboard': 'Buka Dasbor',
   'hero.noteDifferent': 'masuk uji coba berbeda dengan memakai akun',
   'hero.scrollHint': 'scroll/swipe ke bawah untuk informasi lebih lanjut',
   'hero.howItHelps': 'Bagaimana FlashMind membantu?',

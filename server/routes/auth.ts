@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { supabase, addTrace } from '../db.js';
-import { signToken, hashPassword, comparePassword } from '../auth.js';
+import { signToken, hashPassword, comparePassword, optionalAuth } from '../auth.js';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimit } from '../rateLimit.js';
 
@@ -325,8 +325,8 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Redirect to frontend
-    res.redirect('/');
+    // Redirect to frontend dashboard (cookie set; ProtectedRoute will pass)
+    res.redirect('/app');
   } catch (err) {
     console.error('Google callback error:', err);
     res.status(500).json({ error: 'Terjadi kesalahan server' });
@@ -334,7 +334,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 });
 
 // GET /api/auth/status - cek role aktif dari cookie (user/guest/null)
-router.get('/status', (req: Request, res: Response) => {
+router.get('/status', optionalAuth, (req: Request, res: Response) => {
   // ponytail: minimal payload; client panggil ini untuk restore session
   if (req.user) {
     res.json({ role: 'user', userId: req.user.id });
