@@ -30,3 +30,8 @@ Thumbs.db
 **/secrets.local.*
 **/*.local.json
 .env*.local
+
+# ponytail: git backup/scratch dirs (created by filter-repo, manual cp)
+.git.backup-*
+.git.filter-backup-*
+.git-rewrite*
