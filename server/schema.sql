@@ -38,7 +38,9 @@ CREATE TABLE kartu_belajar (
   catatan TEXT NOT NULL,
   lampiran TEXT[] DEFAULT '{}',
   sumber TEXT NOT NULL DEFAULT 'manual' CHECK (sumber IN ('manual','ai')),
+  kategori TEXT,
   dibuat_pada TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX kartu_belajar_pengguna_idx ON kartu_belajar(id_pengguna);
+CREATE INDEX kartu_belajar_kategori_idx ON kartu_belajar(id_pengguna, kategori) WHERE kategori IS NOT NULL;
