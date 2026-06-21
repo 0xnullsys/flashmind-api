@@ -1604,38 +1604,61 @@ p {
 
 .camera-modal-actions {
   margin-top: 1rem;
+  /* ponytail: shutter absolutely centered; Cancel button positioned bottom-right */
+  position: relative;
+  display: flex;
   justify-content: center;
-  gap: 1rem;
+  align-items: center;
+  min-height: 80px;
 }
 
-/* ponytail: large circular capture button — easy to tap, hard to miss */
+.camera-modal-actions .btn-secondary {
+  /* ponytail: place Cancel at bottom-right corner, out of shutter's way */
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ponytail: iOS Camera-style shutter button — outer white ring + inner solid dot, no text */
 .camera-capture-btn {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  border: 4px solid white;
+  background: white;
+  border: 4px solid var(--primary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  font-size: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
+  position: relative;
+  padding: 0;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  /* ponytail: CSS-only inner dot via pseudo-element */
 }
 
-.camera-capture-btn:hover:not(:disabled) {
+.camera-capture-btn::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.camera-capture-btn:hover:not(:disabled)::before {
   transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
 .camera-capture-btn:active:not(:disabled) {
   transform: scale(0.95);
 }
 
+.camera-capture-btn:active:not(:disabled)::before {
+  background: white;
+  transform: scale(0.85);
+}
+
 .camera-capture-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
