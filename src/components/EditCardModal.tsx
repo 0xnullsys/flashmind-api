@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { t } from '../lib/id';
 import { updateFlashcard, ApiError, FlashCardData } from '../lib/api';
 import { checkFrontLimit, checkBackLimit, MAX_FRONT_CHARS, MAX_BACK_CHARS } from '../lib/charLimits';
@@ -10,9 +10,17 @@ interface EditCardModalProps {
 }
 
 export default function EditCardModal({ card, onClose, onUpdated }: EditCardModalProps) {
-  const [title, setTitle] = useState(card?.title || '');
-  const [notes, setNotes] = useState(card?.notes || '');
-  const [category, setCategory] = useState(card?.category || '');
+  // ponytail: useEffect syncs local state when card prop changes (parent sets null→card)
+  const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
+  const [category, setCategory] = useState('');
+  useEffect(() => {
+    if (card) {
+      setTitle(card.title || '');
+      setNotes(card.notes || '');
+      setCategory(card.category || '');
+    }
+  }, [card?.id]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
