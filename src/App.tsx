@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
+import DevBanner from './components/DevBanner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { role, loading } = useAuth();
@@ -49,6 +50,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <DevBanner />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>

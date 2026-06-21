@@ -9,6 +9,10 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env --exclude 'vite.config.ts.timestamp-*' server/dev.ts",
     "build": "vite build",
+    "build:dev": "vite build --mode development",
+    "build:prod": "vite build --mode production",
+    "preview": "vite preview",
+    "preview:dev": "vite preview --mode development",
     "start": "node dist/server/index.js",
     "test": "vitest run"
   },

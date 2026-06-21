@@ -1,5 +1,7 @@
 // API client
-const BASE_URL = '/api';
+// ponytail: base URL from build config — different per build variant (dev/prod)
+import { config } from '../config';
+const BASE_URL = config.apiBase;
 
 interface ApiOptions {
   method?: string;

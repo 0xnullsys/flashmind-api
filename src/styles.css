@@ -1555,6 +1555,54 @@ p {
   background: #000;
 }
 
+/* ponytail: development banner — visible only when VITE_APP_MODE=development */
+.dev-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: linear-gradient(90deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dev-banner-icon {
+  font-size: 1rem;
+}
+
+.dev-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dev-banner-mode {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.dev-banner-build {
+  opacity: 0.85;
+  font-size: 0.75rem;
+}
+
+/* ponytail: add top padding to body when dev banner is visible */
+body:has(.dev-banner) {
+  padding-top: 36px;
+}
+
 /* ponytail: full-size camera capture modal */
 .camera-modal-overlay {
   align-items: center;
