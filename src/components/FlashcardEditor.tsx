@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { t } from '../lib/id';
 import { createFlashcard, testAI, uploadImage, ApiError } from '../lib/api';
+import { countChars, checkFrontLimit, checkBackLimit, MAX_FRONT_CHARS, MAX_BACK_CHARS } from '../lib/charLimits';
 
 interface FlashcardEditorProps {
   isOpen: boolean;
@@ -107,6 +108,16 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
 
   const handleSaveAll = async () => {
     if (generatedCards.length === 0) return;
+    // ponytail: reject save if any AI card exceeds word limits
+    const overLimit = generatedCards.filter(
+      (c) => !checkFrontLimit(c.question).ok || !checkBackLimit(c.answer).ok
+    );
+    if (overLimit.length > 0) {
+      const front = overLimit.filter((c) => !checkFrontLimit(c.question).ok).length;
+      const back = overLimit.filter((c) => !checkBackLimit(c.answer).ok).length;
+      setError(`${overLimit.length} kartu melebihi batas (${front} depan, ${back} belakang). Maks ${MAX_FRONT_CHARS}/${MAX_BACK_CHARS} karakter.`);
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -256,16 +267,26 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
             </p>
 
             <div className="ai-card-list">
-              {generatedCards.map((card, i) => (
-                <div key={i} className="ai-card-item selected">
+              {generatedCards.map((card, i) => {
+                const frontCheck = checkFrontLimit(card.question);
+                const backCheck = checkBackLimit(card.answer);
+                const overLimit = !frontCheck.ok || !backCheck.ok;
+                return (
+                <div key={i} className={`ai-card-item selected ${overLimit ? 'over-limit' : ''}`}>
                   <div className="ai-card-content">
                     <div className="ai-card-question">
                       <span className="ai-card-label">Depan</span>
                       <p>{card.question}</p>
+                      <span className={`word-counter ${!frontCheck.ok ? 'word-counter-over' : ''}`}>
+                        {frontCheck.count}/{frontCheck.max} karakter
+                      </span>
                     </div>
                     <div className="ai-card-answer">
                       <span className="ai-card-label">Belakang</span>
                       <p>{card.answer}</p>
+                      <span className={`word-counter ${!backCheck.ok ? 'word-counter-over' : ''}`}>
+                        {backCheck.count}/{backCheck.max} karakter
+                      </span>
                     </div>
                     {card.category && (
                       <span
@@ -275,9 +296,15 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                         {card.category}
                       </span>
                     )}
+                    {overLimit && (
+                      <div className="word-limit-warning">
+                        ⚠️ Melebihi batas karakter — tidak bisa disimpan sampai dipendekkan
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="form-actions">

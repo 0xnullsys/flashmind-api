@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FlashcardEditor from './FlashcardEditor';
@@ -26,7 +26,6 @@ describe('FlashcardEditor (Issue #21: no title input, AI integrated)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-
   it('renders dialog with AI-focused title (not "Manual Card")', () => {
     render(<FlashcardEditor isOpen={true} onClose={onClose} onCreated={onCreated} />);
     // ponytail: header now reflects AI-first flow

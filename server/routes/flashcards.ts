@@ -59,6 +59,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
+    // ponytail: char limits match client (front 120, back 500); use Array.from for Unicode-safe count
+    const MAX_FRONT = 120;
+    const MAX_BACK = 500;
+    const titleLen = Array.from(title).length;
+    const notesLen = Array.from(notes).length;
+    if (titleLen > MAX_FRONT || notesLen > MAX_BACK) {
+      res.status(400).json({
+        error: `Melebihi batas karakter (depan ${titleLen}/${MAX_FRONT}, belakang ${notesLen}/${MAX_BACK})`,
+      });
+      return;
+    }
+
     // Validate attachments (URLs or paths stored in DB; size check skipped for URLs)
     if (attachments && Array.isArray(attachments)) {
       if (attachments.length > 5) {

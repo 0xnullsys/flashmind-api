@@ -137,12 +137,12 @@ export function deleteFlashcard(id: string) {
 export function testAI(notes: string, fileUrls?: string[]) {
   // ponytail: when file URLs provided, pass them as JSON for server-side download
   if (fileUrls && fileUrls.length > 0) {
-    return apiFetch<{ cards: Array<{ judul: string; catatan: string }> }>('/test', {
+    return apiFetch<{ cards: Array<{ judul: string; catatan: string; category?: string }> }>('/test', {
       method: 'POST',
       body: { catatan: notes, fileUrls },
     });
   }
-  return apiFetch<{ cards: Array<{ judul: string; catatan: string }> }>('/test', {
+  return apiFetch<{ cards: Array<{ judul: string; catatan: string; category?: string }> }>('/test', {
     method: 'POST',
     body: { catatan: notes },
   });

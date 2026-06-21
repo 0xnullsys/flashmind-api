@@ -1489,6 +1489,33 @@ p {
   word-break: break-word;
 }
 
+.word-counter {
+  display: inline-block;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.word-counter-over {
+  color: #d92d20;
+  font-weight: 600;
+}
+
+.word-limit-warning {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(217, 45, 32, 0.1);
+  border: 1px solid rgba(217, 45, 32, 0.3);
+  border-radius: var(--radius-sm);
+  color: #d92d20;
+  font-size: 0.8rem;
+}
+
+.ai-card-item.over-limit {
+  border-color: rgba(217, 45, 32, 0.4);
+}
+
 /* ===== ADMIN ===== */
 .admin-page {
   max-width: var(--max-width);
