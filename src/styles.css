@@ -1663,7 +1663,7 @@ p {
 }
 
 @media (max-width: 480px) {
-  /* ponytail: full-screen on mobile, no overlay padding */
+  /* ponytail: full-screen on mobile (portrait phones), no overlay padding */
   .camera-modal-overlay {
     padding: 0;
   }
@@ -1671,14 +1671,14 @@ p {
     width: 100vw;
     max-width: 100vw;
     height: 100vh;
-    height: 100dvh; /* dynamic vh excludes browser chrome */
+    height: 100dvh;
     max-height: 100vh;
     max-height: 100dvh;
     border-radius: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* ponytail: no scroll inside modal */
+    overflow: hidden;
   }
 
   .camera-modal-header {
@@ -1708,52 +1708,88 @@ p {
     background: #000;
   }
 
-  /* ponytail: action bar fixed above mobile nav bar / home indicator */
   .camera-modal-actions {
     flex-shrink: 0;
     padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
     background: var(--bg-card);
-    /* ponytail: ensure button placement above 3-button mobile nav */
     padding-bottom: max(1rem, calc(env(safe-area-inset-bottom, 0px) + 56px));
     position: relative;
-  }
-
-  /* ponytail: large circular shutter button — bottom center in portrait */
-  .camera-modal-actions {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1.5rem;
+    min-height: 80px;
   }
 
-  /* landscape: switch to horizontal layout with shutter on the right side
-     so it doesn't obscure the video preview */
-  @media (orientation: landscape) {
-    .camera-modal {
-      flex-direction: row;
-    }
-    .camera-modal-header {
-      position: absolute;
-      top: 0;
-      right: 0;
-      left: auto;
-      width: auto;
-      background: transparent;
-      z-index: 3;
-    }
-    .camera-modal-body {
-      flex: 1 1 0;
-    }
-    .camera-modal-actions {
-      flex: 0 0 auto;
-      width: 120px;
-      flex-direction: column;
-      padding: 1rem 0.5rem;
-      justify-content: center;
-      gap: 1.5rem;
-      background: rgba(0, 0, 0, 0.85);
-      border-left: 1px solid rgba(255, 255, 255, 0.1);
-    }
+  .camera-modal-actions .btn-secondary {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+/* ponytail: landscape phones — horizontal layout with shutter on the right side
+   so it doesn't obscure the video preview. Matches iPhone held horizontally. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .camera-modal-overlay {
+    padding: 0;
+  }
+  .camera-modal {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: row; /* ponytail: switch to horizontal layout */
+    overflow: hidden;
+  }
+  .camera-modal-header {
+    flex-shrink: 0;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: auto;
+    width: auto;
+    background: transparent;
+    z-index: 3;
+    padding: 0.75rem;
+  }
+  .camera-modal-body {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    overflow: hidden;
+  }
+  .camera-modal-video {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+  /* ponytail: action bar on the right side, vertical layout */
+  .camera-modal-actions {
+    flex-shrink: 0;
+    flex: 0 0 110px;
+    flex-direction: column;
+    padding: 1rem 0.5rem;
+    justify-content: center;
+    gap: 1.5rem;
+    background: rgba(0, 0, 0, 0.85);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .camera-modal-actions .btn-secondary {
+    position: static;
+    transform: none;
   }
 }
 
