@@ -16,24 +16,48 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [cameraAvailable, setCameraAvailable] = useState<boolean | null>(null);
+  // ponytail: camera states — null (unchecked), 'checking', true (available), false (no camera)
+  const [cameraStatus, setCameraStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
   const [generatedCards, setGeneratedCards] = useState<Array<{ question: string; answer: string; category?: string }>>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [cameraInputRef] = useState(useRef<HTMLInputElement>(null));
-  const [fileInputRef] = useState(useRef<HTMLInputElement>(null));
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ponytail: reset camera state when dialog opens
   useEffect(() => {
-    if (!isOpen) return;
-    if (!navigator.mediaDevices?.enumerateDevices) {
-      setCameraAvailable(false);
-      return;
-    }
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then((devices) => setCameraAvailable(devices.some((d) => d.kind === 'videoinput')))
-      .catch(() => setCameraAvailable(false));
+    if (isOpen) setCameraStatus('idle');
   }, [isOpen]);
+
+  // ponytail: trigger camera detection when user clicks "Ambil foto" first time.
+  // Detection uses getUserMedia({video:true}) to actually request OS-level camera
+  // permission — this is what triggers the native "Allow camera?" prompt.
+  // We immediately stop the stream after detection to free the camera.
+  const detectCamera = async () => {
+    setCameraStatus('checking');
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraStatus('unavailable');
+        return;
+      }
+      // ponytail: probe by requesting a short-lived stream
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((t) => t.stop());
+      setCameraStatus('available');
+    } catch {
+      setCameraStatus('unavailable');
+    }
+  };
+
+  const handleCameraClick = () => {
+    // ponytail: only open picker after camera confirmed available
+    if (cameraStatus === 'available') {
+      cameraInputRef.current?.click();
+    } else if (cameraStatus === 'idle' || cameraStatus === 'checking') {
+      detectCamera();
+    }
+    // unavailable: button is disabled, click is a no-op
+  };
 
   if (!isOpen) return null;
 
@@ -212,20 +236,28 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => cameraInputRef.current?.click()}
-                  disabled={cameraAvailable === false || cameraAvailable === null}
+                  onClick={handleCameraClick}
+                  disabled={cameraStatus === 'unavailable'}
                   title={
-                    cameraAvailable === false
+                    cameraStatus === 'unavailable'
                       ? 'Kamera tidak terdeteksi pada perangkat ini'
-                      : cameraAvailable === null
+                      : cameraStatus === 'checking'
                       ? 'Mendeteksi kamera…'
-                      : 'Buka kamera untuk mengambil foto catatan'
+                      : cameraStatus === 'available'
+                      ? 'Buka kamera untuk mengambil foto catatan'
+                      : 'Klik untuk mendeteksi kamera'
                   }
                 >
-                  {cameraAvailable === null ? '📷 Kamera…' : '📷 Ambil foto'}
+                  {cameraStatus === 'checking' ? '📷 Memeriksa…' : '📷 Ambil foto'}
                 </button>
-                {cameraAvailable === false && (
+                {cameraStatus === 'unavailable' && (
                   <span className="ai-upload-hint">Kamera tidak terdeteksi pada perangkat ini</span>
+                )}
+                {cameraStatus === 'available' && (
+                  <span className="ai-upload-hint">Kamera siap — klik Ambil foto untuk membuka kamera</span>
+                )}
+                {cameraStatus === 'checking' && (
+                  <span className="ai-upload-hint">Meminta izin kamera…</span>
                 )}
               </div>
 
