@@ -53,7 +53,7 @@ export default function Flashcard({ card, onDelete, onEdit }: FlashcardProps) {
             title="Edit kartu"
             aria-label="Edit kartu"
           >
-            ✎
+            Edit
           </button>
         )}
         <button
@@ -65,7 +65,7 @@ export default function Flashcard({ card, onDelete, onEdit }: FlashcardProps) {
           title={t('flashcard.delete')}
           aria-label="Hapus kartu"
         >
-          🗑
+          Hapus
         </button>
       </div>
     </div>

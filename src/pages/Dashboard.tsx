@@ -137,7 +137,7 @@ export default function Dashboard() {
               className={`category-nav-item ${activeCategory === null ? 'active' : ''}`}
               onClick={() => setActiveCategory(null)}
             >
-              <span className="category-nav-icon">📚</span>
+              <span className="category-nav-icon"></span>
               <span className="category-nav-label">Semua</span>
               <span className="category-nav-count">{total}</span>
             </button>

@@ -210,7 +210,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                   className="btn btn-secondary btn-sm"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  📎 Unggah gambar ({files.length}/{MAX_FILES})
+                  Unggah gambar ({files.length}/{MAX_FILES})
                 </button>
                 <button
                   type="button"
@@ -225,7 +225,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                       : 'Buka kamera untuk mengambil foto catatan'
                   }
                 >
-                  {cameraStatus === 'checking' ? '📷 Memeriksa…' : '📷 Ambil foto'}
+                  {cameraStatus === 'checking' ? 'Memeriksa kamera…' : 'Ambil foto'}
                 </button>
                 {cameraStatus === 'unavailable' && (
                   <span className="ai-upload-hint">Kamera tidak terdeteksi pada perangkat ini</span>
@@ -261,7 +261,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                 onClick={handleGenerate}
                 disabled={loading}
               >
-                {loading ? t('ai.loading') : '✨ Hasilkan Kartu'}
+                {loading ? t('ai.loading') : 'Hasilkan Kartu'}
               </button>
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Batal
@@ -307,7 +307,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                     )}
                     {overLimit && (
                       <div className="word-limit-warning">
-                        ⚠️ Melebihi batas karakter — tidak bisa disimpan sampai dipendekkan
+                        Melebihi batas karakter — tidak bisa disimpan sampai dipendekkan
                       </div>
                     )}
                   </div>
@@ -323,7 +323,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                 onClick={handleSaveAll}
                 disabled={loading}
               >
-                {loading ? t('ai.loading') : `💾 Simpan ${generatedCards.length} Kartu`}
+                {loading ? t('ai.loading') : `Simpan ${generatedCards.length} Kartu`}
               </button>
               <button
                 type="button"

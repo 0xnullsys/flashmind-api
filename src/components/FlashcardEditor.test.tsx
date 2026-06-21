@@ -138,6 +138,7 @@ describe('FlashcardEditor (Issue #21: no title input, AI integrated)', () => {
     expect(await screen.findByText(/AI tidak menghasilkan kartu/i)).toBeInTheDocument();
   });
 
+
   it('does not render when isOpen=false', () => {
     const { container } = render(<FlashcardEditor isOpen={false} onClose={onClose} onCreated={onCreated} />);
     expect(container.firstChild).toBeNull();
