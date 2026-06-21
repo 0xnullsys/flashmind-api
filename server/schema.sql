@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS kartu_belajar (
 );
 
 CREATE INDEX IF NOT EXISTS kartu_belajar_pengguna_idx ON kartu_belajar(id_pengguna);
-CREATE INDEX IF NOT EXISTS kartu_belajar_kategori_idx ON kartu_belajar(id_pengguna, kategori) WHERE kategori IS NOT NULL;
+-- index kartu_belajar_kategori_idx dibuat di section 2 (migration 001) setelah kolom kategori di-ALTER
 
 -- =====================================================
 -- 2. MIGRATION 001: tambah kolom kategori
