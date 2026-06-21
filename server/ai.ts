@@ -8,7 +8,7 @@ interface AICard {
 }
 
 // ponytail: lightweight keyword-based category detection; user can edit before save
-function detectCategory(text: string): string | undefined {
+export function detectCategory(text: string): string | undefined {
   const t = text.toLowerCase();
   if (/\b(sel|membran|organel|dna|rna|enzim|protein|fotosintesis|ekosistem|species)\b/.test(t)) return 'Biologi';
   if (/\b(gaya|energi|listrik|magnet|gelombang|optik|newton|relativitas|kuantum|atom)\b/.test(t)) return 'Fisika';
