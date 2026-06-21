@@ -104,8 +104,8 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
     expect(screen.getByRole('heading', { name: /Ambil Foto Catatan/i })).toBeInTheDocument();
     // Video element inside modal
     expect(document.querySelector('.camera-modal-video')).toBeTruthy();
-    // Capture button inside modal
-    expect(screen.getByRole('button', { name: /📸 Ambil foto/i })).toBeInTheDocument();
+    // ponytail: shutter button is CSS-only icon (no text); query by class + title
+    expect(document.querySelector('.camera-capture-btn')).toBeTruthy();
   });
 
   it('camera button click does NOTHING when unavailable', async () => {
