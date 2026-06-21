@@ -78,7 +78,7 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
     expect(cameraBtn).toBeDisabled();
   });
 
-  it('camera button click opens WebRTC live preview when available', async () => {
+  it('camera button click opens CameraCaptureModal when available', async () => {
     const stop = vi.fn();
     const getUserMediaSpy = vi.fn().mockResolvedValue({
       getTracks: () => [{ stop }],
@@ -96,21 +96,16 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
       expect(screen.getByRole('button', { name: '📷 Ambil foto' })).toBeInTheDocument();
     });
 
-    // Click camera button — should call getUserMedia again to open live preview
+    // Click camera button — should open CameraCaptureModal (no second getUserMedia call)
     const cameraBtn = screen.getByRole('button', { name: '📷 Ambil foto' });
     await user.click(cameraBtn);
 
-    // ponytail: getUserMedia called twice (once for detection, once for preview)
-    await waitFor(() => {
-      expect(getUserMediaSpy).toHaveBeenCalledTimes(2);
-    });
-
-    // Video preview element rendered
-    expect(document.querySelector('.camera-preview-video')).toBeTruthy();
-
-    // Capture button + close button appear
+    // CameraCaptureModal opens
+    expect(screen.getByRole('heading', { name: /Ambil Foto Catatan/i })).toBeInTheDocument();
+    // Video element inside modal
+    expect(document.querySelector('.camera-modal-video')).toBeTruthy();
+    // Capture button inside modal
     expect(screen.getByRole('button', { name: /📸 Ambil foto/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Tutup kamera/i })).toBeInTheDocument();
   });
 
   it('camera button click does NOTHING when unavailable', async () => {
