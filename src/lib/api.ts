@@ -147,6 +147,13 @@ export function updateFlashcard(id: string, data: {
   });
 }
 
+// ponytail: mark card as studied (called on flip). Fire-and-forget.
+export function markCardStudied(id: string) {
+  return apiFetch<{ ok: boolean; card: FlashCardData }>(`/flashcards/${id}/studied`, {
+    method: 'POST',
+  });
+}
+
 // AI Test
 export function testAI(notes: string, fileUrls?: string[]) {
   // ponytail: when file URLs provided, pass them as JSON for server-side download
@@ -207,6 +214,8 @@ export interface FlashCardData {
   source: string;
   category?: string | null;
   createdAt: string;
+  // ponytail: kapan terakhir kali user flip kartu ini. null = belum pernah.
+  lastStudiedAt?: string | null;
 }
 
 export interface AdminStatsData {

@@ -7,6 +7,8 @@ import Flashcard from '../components/Flashcard';
 import FlashcardEditor from '../components/FlashcardEditor';
 import EditCardModal from '../components/EditCardModal';
 import AuthDialog from '../components/AuthDialog';
+import KategoriBar from '../components/KategoriBar';
+import { timeAgo } from '../lib/timeAgo';
 
 export default function Dashboard() {
   const { user, role, logout } = useAuth();
@@ -77,13 +79,28 @@ export default function Dashboard() {
     return { groups: sorted, total: cards.length };
   }, [cards]);
 
-  // ponytail: deterministic color per category — used by sidebar + chip
+  // ponytail: deterministic color per category
   const categoryColor = (cat: string) => {
     let hash = 0;
     for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) | 0;
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 55%, 45%)`;
   };
+
+  // ponytail: build list for KategoriBar
+  const kategoriOptions = useMemo(() => {
+    return groups.map(([name, items]) => ({
+      name,
+      count: items.length,
+      color: categoryColor(name),
+    }));
+  }, [groups]);
+
+  // ponytail: filter cards by active category, already sorted by last_studied ASC
+  const visibleCards = useMemo(() => {
+    if (activeCategory === null) return cards;
+    return cards.filter((c) => (c.category || 'Tanpa Kategori') === activeCategory);
+  }, [cards, activeCategory]);
 
   return (
     <div className="dashboard">
@@ -128,79 +145,47 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="dashboard-layout">
-        {/* Sidebar kategori */}
-        <aside className="dashboard-sidebar">
-          <h2 className="sidebar-title">Kategori</h2>
-          <nav className="category-list">
-            <button
-              className={`category-nav-item ${activeCategory === null ? 'active' : ''}`}
-              onClick={() => setActiveCategory(null)}
-            >
-              <span className="category-nav-icon"></span>
-              <span className="category-nav-label">Semua</span>
-              <span className="category-nav-count">{total}</span>
-            </button>
-            {groups.map(([cat, items]) => (
-              <button
-                key={cat}
-                className={`category-nav-item ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-                style={{ ['--cat-color' as any]: categoryColor(cat) }}
-              >
-                <span
-                  className="category-nav-dot"
-                  style={{ background: categoryColor(cat) }}
-                />
-                <span className="category-nav-label">{cat}</span>
-                <span className="category-nav-count">{items.length}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
+      {/* ponytail: kategori bar (top, NOT sticky) */}
+      {!isGuest && cards.length > 0 && (
+        <KategoriBar
+          categories={kategoriOptions}
+          activeCategory={activeCategory}
+          totalCount={total}
+          onChange={setActiveCategory}
+        />
+      )}
 
-        {/* Main area: kartu dikelompokkan per kategori */}
-        <main className="dashboard-main">
-          {loading ? (
-            <div className="dashboard-loading">{t('ai.loading')}</div>
-          ) : isGuest ? (
-            <div className="dashboard-empty">{t('dashboard.guestEmpty')}</div>
-          ) : cards.length === 0 ? (
-            <div className="dashboard-empty">
-              <p>{t('dashboard.empty')}</p>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowEditor(true)}
-              >
-                {t('dashboard.newManual')}
-              </button>
-            </div>
-          ) : activeCategory ? (
-            // single category view
-            <CategorySection
-              name={activeCategory}
-              cards={groups.find(([n]) => n === activeCategory)?.[1] || []}
-              color={categoryColor(activeCategory)}
-              onDelete={handleDelete}
-              onEdit={setEditingCard}
-            />
-          ) : (
-            // all categories, grouped
-            <>
-              {groups.map(([name, items]) => (
-                <CategorySection
-                  key={name}
-                  name={name}
-                  cards={items}
-                  color={categoryColor(name)}
-                  onDelete={handleDelete}
-                  onEdit={setEditingCard}
-                />
-              ))}
-            </>
-          )}
-        </main>
-      </div>
+      <main className="dashboard-timeline">
+        {loading ? (
+          <div className="dashboard-loading">{t('ai.loading')}</div>
+        ) : isGuest ? (
+          <div className="dashboard-empty">{t('dashboard.guestEmpty')}</div>
+        ) : cards.length === 0 ? (
+          <div className="dashboard-empty">
+            <p>{t('dashboard.empty')}</p>
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowEditor(true)}
+            >
+              {t('dashboard.newManual')}
+            </button>
+          </div>
+        ) : (
+          <div className="timeline-list">
+            {visibleCards.map((card) => (
+              <article key={card.id} className="timeline-item">
+                <div className="timeline-meta">
+                  <span className="timeline-category-tag" style={{ background: categoryColor(card.category || 'Tanpa Kategori') }}>
+                    {card.category || 'Tanpa Kategori'}
+                  </span>
+                  <span className="timeline-time">{timeAgo(card.lastStudiedAt)}</span>
+                </div>
+                <Flashcard card={card} onDelete={handleDelete} onEdit={setEditingCard} />
+              </article>
+            ))}
+          </div>
+        )}
+      </main>
 
       <FlashcardEditor
         isOpen={showEditor}
@@ -219,34 +204,5 @@ export default function Dashboard() {
         onClose={() => setShowAuth(false)}
       />
     </div>
-  );
-}
-
-function CategorySection({
-  name,
-  cards,
-  color,
-  onDelete,
-  onEdit,
-}: {
-  name: string;
-  cards: FlashCardData[];
-  color: string;
-  onDelete: (id: string) => void;
-  onEdit: (card: FlashCardData) => void;
-}) {
-  return (
-    <section className="category-section" style={{ ['--cat-color' as any]: color }}>
-      <header className="category-section-header">
-        <span className="category-section-dot" style={{ background: color }} />
-        <h2 className="category-section-title">{name}</h2>
-        <span className="category-section-count">{cards.length} kartu</span>
-      </header>
-      <div className="card-grid">
-        {cards.map((card) => (
-          <Flashcard key={card.id} card={card} onDelete={onDelete} onEdit={onEdit} />
-        ))}
-      </div>
-    </section>
   );
 }

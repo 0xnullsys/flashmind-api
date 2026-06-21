@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { t } from '../lib/id';
-import { FlashCardData } from '../lib/api';
+import { FlashCardData, markCardStudied } from '../lib/api';
 
 interface FlashcardProps {
   card: FlashCardData;
@@ -11,15 +11,27 @@ interface FlashcardProps {
 export default function Flashcard({ card, onDelete, onEdit }: FlashcardProps) {
   const [flipped, setFlipped] = useState(false);
 
+  // ponytail: on flip, mark as studied (fire-and-forget). Update local state so UI reflects it.
+  const handleFlip = () => {
+    const next = !flipped;
+    setFlipped(next);
+    if (next) {
+      markCardStudied(card.id).catch((err) => {
+        // ponytail: silent fail — don't disrupt UX for a non-critical side-effect
+        console.warn('markCardStudied failed:', err);
+      });
+    }
+  };
+
   return (
     <div
       className={`flashcard ${flipped ? 'flipped' : ''}`}
-      onClick={() => setFlipped(!flipped)}
+      onClick={handleFlip}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          setFlipped(!flipped);
+          handleFlip();
         }
       }}
     >

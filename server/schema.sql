@@ -123,3 +123,15 @@ CREATE POLICY service_role_all_card ON kartu_belajar
 -- SELECT column_name, data_type FROM information_schema.columns
 -- WHERE table_name = 'kartu_belajar' AND column_name = 'kategori';
 -- Expected: kategori | text
+
+-- =====================================================
+-- 3. MIGRATION 003: tambah kolom terakhir_dipelajari
+-- =====================================================
+-- Fungsi: track kapan terakhir kali kartu dipelajari (flip)
+-- NULL = belum pernah dipelajari (muncul paling atas untuk review)
+
+ALTER TABLE kartu_belajar
+  ADD COLUMN IF NOT EXISTS terakhir_dipelajari TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS kartu_belajar_review_idx
+  ON kartu_belajar (id_pengguna, terakhir_dipelajari NULLS FIRST, dibuat_pada ASC);

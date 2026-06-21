@@ -6,15 +6,17 @@ import { v4 as uuidv4 } from 'uuid';
 const router = Router();
 
 // GET /api/flashcards - daftar kartu sendiri
+// ponytail: sort by review queue (NULLS FIRST) so never-studied cards appear on top
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     let data: any[] | null = null;
     let error: any = null;
     const res1 = await supabase
       .from('kartu_belajar')
-      .select('id, id_pengguna, judul, catatan, lampiran, sumber, kategori, dibuat_pada')
+      .select('id, id_pengguna, judul, catatan, lampiran, sumber, kategori, dibuat_pada, terakhir_dipelajari')
       .eq('id_pengguna', req.user!.id)
-      .order('dibuat_pada', { ascending: false });
+      .order('terakhir_dipelajari', { ascending: true, nullsFirst: true })
+      .order('dibuat_pada', { ascending: true });
     data = res1.data;
     error = res1.error;
 
@@ -40,6 +42,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       source: row.sumber,
       category: row.kategori || null,
       createdAt: row.dibuat_pada,
+      lastStudiedAt: row.terakhir_dipelajari || null,
     }));
 
     res.json({ cards });
@@ -252,3 +255,47 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 });
 
 export default router;
+// ponytail: mark card as studied (called on flip). Updates terakhir_dipelajari = now().
+router.post('/:id/studied', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('kartu_belajar')
+      .update({ terakhir_dipelajari: new Date().toISOString() })
+      .eq('id', id)
+      .eq('id_pengguna', req.user!.id)
+      .select('id, id_pengguna, judul, catatan, lampiran, sumber, kategori, dibuat_pada, terakhir_dipelajari')
+      .single();
+
+    if (error) {
+      if (error.code === '42703' || error.code === 'PGRST204') {
+        // ponytail: column not yet added (migration not run) — silently succeed so flip UX works
+        res.json({ ok: true, card: null });
+        return;
+      }
+      throw error;
+    }
+    if (!data) {
+      res.status(404).json({ error: 'Kartu tidak ditemukan' });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      card: {
+        id: data.id,
+        userId: data.id_pengguna,
+        title: data.judul,
+        notes: data.catatan,
+        attachments: data.lampiran || [],
+        source: data.sumber,
+        category: data.kategori || null,
+        createdAt: data.dibuat_pada,
+        lastStudiedAt: data.terakhir_dipelajari || null,
+      },
+    });
+  } catch (err) {
+    console.error('Mark studied error:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan server' });
+  }
+});
