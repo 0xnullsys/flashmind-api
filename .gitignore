@@ -1,5 +1,6 @@
 node_modules
 dist
+docs/api
 .env
 .env.local
 *.local
