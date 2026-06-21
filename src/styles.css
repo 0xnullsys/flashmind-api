@@ -1537,6 +1537,32 @@ p {
   border-color: rgba(217, 45, 32, 0.4);
 }
 
+/* ponytail: inline edit mode for AI-generated cards */
+.ai-card-edit-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  background: var(--surface);
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+
+.ai-card-edit-textarea:focus {
+  outline: none;
+  border-color: var(--primary, #5e5ce6);
+  box-shadow: 0 0 0 2px rgba(94, 92, 230, 0.15);
+}
+
+.ai-card-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 /* ponytail: live camera preview using WebRTC — works on all platforms */
 .camera-preview {
   margin-top: 0.75rem;
