@@ -16,13 +16,14 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  // ponytail: camera states — 'checking' (probing), 'available', 'unavailable'
-  const [cameraStatus, setCameraStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
+  // ponytail: camera states — 'checking' (probing), 'available' (ready to capture), 'unavailable', 'capturing' (live preview open)
+  const [cameraStatus, setCameraStatus] = useState<'checking' | 'available' | 'unavailable' | 'capturing'>('checking');
   const [generatedCards, setGeneratedCards] = useState<Array<{ question: string; answer: string; category?: string }>>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const liveStreamRef = useRef<MediaStream | null>(null);
 
   // ponytail: auto-detect camera on dialog mount via getUserMedia({video:true}).
   // This is the OS-level probe that triggers the native camera permission prompt.
@@ -44,15 +45,84 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
         if (!cancelled) setCameraStatus('unavailable');
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      // ponytail: ensure any live stream is stopped when dialog closes
+      stopLiveStream();
+    };
   }, [isOpen]);
 
-  const handleCameraClick = () => {
-    // ponytail: only open picker when camera is confirmed available
-    if (cameraStatus === 'available') {
-      cameraInputRef.current?.click();
+  const stopLiveStream = () => {
+    if (liveStreamRef.current) {
+      liveStreamRef.current.getTracks().forEach((t) => t.stop());
+      liveStreamRef.current = null;
     }
-    // checking/unavailable: no-op (button is disabled in those states)
+  };
+
+  // ponytail: open live camera preview using WebRTC — works on all platforms
+  // (mobile + desktop). User can click "Ambil foto" button to capture a frame.
+  const openCameraPreview = async () => {
+    setError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }, // prefer rear camera on mobile
+      });
+      liveStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setCameraStatus('capturing');
+    } catch (err) {
+      console.error('Camera open failed:', err);
+      setError('Tidak dapat membuka kamera');
+      setCameraStatus('available'); // fall back so user can retry or use upload
+    }
+  };
+
+  // ponytail: capture current frame from video → canvas → File → add to files list
+  const captureFrame = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (video.videoWidth === 0) {
+      setError('Kamera belum siap');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setError('Tidak dapat memproses frame');
+      return;
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setError('Gagal mengambil foto');
+        return;
+      }
+      const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      // add to files
+      const next = [...files];
+      const nextPreviews = [...previews];
+      if (next.length < MAX_FILES) {
+        next.push(file);
+        nextPreviews.push(URL.createObjectURL(file));
+        setFiles(next);
+        setPreviews(nextPreviews);
+      } else {
+        setError(`Maksimal ${MAX_FILES} gambar`);
+      }
+      // close preview
+      closeCameraPreview();
+    }, 'image/jpeg', 0.92);
+  };
+
+  const closeCameraPreview = () => {
+    stopLiveStream();
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraStatus('available');
   };
 
   if (!isOpen) return null;
@@ -212,15 +282,6 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
               />
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
               <div className="ai-upload-buttons">
                 <button
                   type="button"
@@ -229,21 +290,40 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                 >
                   📎 Unggah gambar ({files.length}/{MAX_FILES})
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleCameraClick}
-                  disabled={cameraStatus !== 'available'}
-                  title={
-                    cameraStatus === 'unavailable'
-                      ? 'Kamera tidak terdeteksi pada perangkat ini'
-                      : cameraStatus === 'checking'
-                      ? 'Mendeteksi kamera…'
-                      : 'Buka kamera untuk mengambil foto catatan'
-                  }
-                >
-                  {cameraStatus === 'checking' ? '📷 Memeriksa…' : '📷 Ambil foto'}
-                </button>
+                {cameraStatus === 'capturing' ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={captureFrame}
+                    >
+                      📸 Ambil foto
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={closeCameraPreview}
+                    >
+                      ✕ Tutup kamera
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={openCameraPreview}
+                    disabled={cameraStatus !== 'available'}
+                    title={
+                      cameraStatus === 'unavailable'
+                        ? 'Kamera tidak terdeteksi pada perangkat ini'
+                        : cameraStatus === 'checking'
+                        ? 'Mendeteksi kamera…'
+                        : 'Buka kamera untuk mengambil foto catatan'
+                    }
+                  >
+                    {cameraStatus === 'checking' ? '📷 Memeriksa…' : '📷 Ambil foto'}
+                  </button>
+                )}
                 {cameraStatus === 'unavailable' && (
                   <span className="ai-upload-hint">Kamera tidak terdeteksi pada perangkat ini</span>
                 )}
@@ -254,6 +334,18 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                   <span className="ai-upload-hint">Meminta izin kamera…</span>
                 )}
               </div>
+
+              {cameraStatus === 'capturing' && (
+                <div className="camera-preview">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="camera-preview-video"
+                  />
+                </div>
+              )}
 
               {previews.length > 0 && (
                 <div className="attachment-previews">
