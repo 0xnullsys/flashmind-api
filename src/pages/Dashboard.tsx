@@ -5,6 +5,7 @@ import { getFlashcards, deleteFlashcard, FlashCardData } from '../lib/api';
 import { ApiError } from '../lib/api';
 import Flashcard from '../components/Flashcard';
 import FlashcardEditor from '../components/FlashcardEditor';
+import AICreate from '../components/AICreate';
 import EditCardModal from '../components/EditCardModal';
 import AuthDialog from '../components/AuthDialog';
 
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const [cards, setCards] = useState<FlashCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
+  const [showAI, setShowAI] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [editingCard, setEditingCard] = useState<FlashCardData | null>(null);
   const [error, setError] = useState('');
@@ -107,6 +109,12 @@ export default function Dashboard() {
             onClick={() => (isGuest ? setShowAuth(true) : setShowEditor(true))}
           >
             {t('dashboard.newManual')}
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => (isGuest ? setShowAuth(true) : setShowAI(true))}
+          >
+            {t('dashboard.aiGen')}
           </button>
           <button className="btn btn-outline" onClick={handleLogout}>
             Keluar
@@ -212,6 +220,12 @@ export default function Dashboard() {
         card={editingCard}
         onClose={() => setEditingCard(null)}
         onUpdated={loadCards}
+      />
+
+      <AICreate
+        isOpen={showAI}
+        onClose={() => setShowAI(false)}
+        onCreated={loadCards}
       />
 
       <AuthDialog
