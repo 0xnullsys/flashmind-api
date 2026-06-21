@@ -159,4 +159,96 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/flashcards/:id - edit kartu sendiri (title/notes/category)
+router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { title, notes, category } = req.body;
+
+    // ponytail: same char limits as create
+    const MAX_FRONT = 120;
+    const MAX_BACK = 500;
+    if (title !== undefined) {
+      const len = Array.from(title).length;
+      if (len === 0) {
+        res.status(400).json({ error: 'Judul tidak boleh kosong' });
+        return;
+      }
+      if (len > MAX_FRONT) {
+        res.status(400).json({ error: `Judul melebihi batas (${len}/${MAX_FRONT} karakter)` });
+        return;
+      }
+    }
+    if (notes !== undefined) {
+      const len = Array.from(notes).length;
+      if (len === 0) {
+        res.status(400).json({ error: 'Catatan tidak boleh kosong' });
+        return;
+      }
+      if (len > MAX_BACK) {
+        res.status(400).json({ error: `Catatan melebihi batas (${len}/${MAX_BACK} karakter)` });
+        return;
+      }
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (title !== undefined) updates.judul = title;
+    if (notes !== undefined) updates.catatan = notes;
+    if (category !== undefined) {
+      updates.kategori = category && String(category).trim() ? String(category).trim() : null;
+    }
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: 'Tidak ada field yang diubah' });
+      return;
+    }
+
+    let result = await supabase
+      .from('kartu_belajar')
+      .update(updates)
+      .eq('id', req.params.id)
+      .eq('id_pengguna', req.user!.id)
+      .select()
+      .single();
+
+    // ponytail: graceful fallback when kategori column missing
+    if (result.error && (result.error.code === 'PGRST204' || result.error.code === '42703') && 'kategori' in updates) {
+      console.warn('kategori column missing on PATCH, retry without it');
+      const { kategori, ...withoutKategori } = updates;
+      result = await supabase
+        .from('kartu_belajar')
+        .update(withoutKategori)
+        .eq('id', req.params.id)
+        .eq('id_pengguna', req.user!.id)
+        .select()
+        .single();
+    }
+
+    if (result.error) {
+      if (result.error.code === 'PGRST116') {
+        res.status(404).json({ error: 'Kartu tidak ditemukan' });
+        return;
+      }
+      throw result.error;
+    }
+
+    const row = result.data;
+    await addTrace('pengunjung_berakun', req.user!.id, 'card_edit', `/api/flashcards/${req.params.id}`, { cardId: req.params.id, fields: Object.keys(updates) });
+
+    res.json({
+      card: {
+        id: row.id,
+        userId: row.id_pengguna,
+        title: row.judul,
+        notes: row.catatan,
+        attachments: row.lampiran || [],
+        source: row.sumber,
+        category: row.kategori || null,
+        createdAt: row.dibuat_pada,
+      },
+    });
+  } catch (err) {
+    console.error('Edit flashcard error:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan server' });
+  }
+});
+
 export default router;

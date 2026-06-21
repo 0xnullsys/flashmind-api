@@ -6,6 +6,7 @@ import { ApiError } from '../lib/api';
 import Flashcard from '../components/Flashcard';
 import FlashcardEditor from '../components/FlashcardEditor';
 import AICreate from '../components/AICreate';
+import EditCardModal from '../components/EditCardModal';
 import AuthDialog from '../components/AuthDialog';
 
 export default function Dashboard() {
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [showEditor, setShowEditor] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [editingCard, setEditingCard] = useState<FlashCardData | null>(null);
   const [error, setError] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
@@ -188,6 +190,7 @@ export default function Dashboard() {
               cards={groups.find(([n]) => n === activeCategory)?.[1] || []}
               color={categoryColor(activeCategory)}
               onDelete={handleDelete}
+              onEdit={setEditingCard}
             />
           ) : (
             // all categories, grouped
@@ -199,6 +202,7 @@ export default function Dashboard() {
                   cards={items}
                   color={categoryColor(name)}
                   onDelete={handleDelete}
+                  onEdit={setEditingCard}
                 />
               ))}
             </>
@@ -210,6 +214,12 @@ export default function Dashboard() {
         isOpen={showEditor}
         onClose={() => setShowEditor(false)}
         onCreated={loadCards}
+      />
+
+      <EditCardModal
+        card={editingCard}
+        onClose={() => setEditingCard(null)}
+        onUpdated={loadCards}
       />
 
       <AICreate
@@ -231,11 +241,13 @@ function CategorySection({
   cards,
   color,
   onDelete,
+  onEdit,
 }: {
   name: string;
   cards: FlashCardData[];
   color: string;
   onDelete: (id: string) => void;
+  onEdit: (card: FlashCardData) => void;
 }) {
   return (
     <section className="category-section" style={{ ['--cat-color' as any]: color }}>
@@ -246,7 +258,7 @@ function CategorySection({
       </header>
       <div className="card-grid">
         {cards.map((card) => (
-          <Flashcard key={card.id} card={card} onDelete={onDelete} />
+          <Flashcard key={card.id} card={card} onDelete={onDelete} onEdit={onEdit} />
         ))}
       </div>
     </section>

@@ -133,6 +133,18 @@ export function deleteFlashcard(id: string) {
   return apiFetch<{ ok: boolean }>(`/flashcards/${id}`, { method: 'DELETE' });
 }
 
+// ponytail: edit existing card; category can be null to clear
+export function updateFlashcard(id: string, data: {
+  title?: string;
+  notes?: string;
+  category?: string | null;
+}) {
+  return apiFetch<{ card: FlashCardData }>(`/flashcards/${id}`, {
+    method: 'PATCH',
+    body: data,
+  });
+}
+
 // AI Test
 export function testAI(notes: string, fileUrls?: string[]) {
   // ponytail: when file URLs provided, pass them as JSON for server-side download

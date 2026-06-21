@@ -1017,28 +1017,49 @@ p {
   border: 1px solid var(--border);
 }
 
-.flashcard-delete {
+.flashcard-actions {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: rgba(239, 68, 68, 0.9);
-  border: none;
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
+  display: flex;
+  gap: 0.25rem;
   opacity: 0;
   transition: opacity 0.2s;
-  font-size: 1rem;
+  z-index: 2;
+}
+
+.flashcard:hover .flashcard-actions,
+.flashcard:focus-within .flashcard-actions {
+  opacity: 1;
+}
+
+.flashcard-delete,
+.flashcard-edit {
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.95rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.15s;
 }
 
-.flashcard:hover .flashcard-delete,
-.flashcard:focus-within .flashcard-delete {
-  opacity: 1;
+.flashcard-delete:hover {
+  background: rgba(239, 68, 68, 0.95);
+}
+
+.flashcard-edit:hover {
+  background: rgba(99, 102, 241, 0.95);
+}
+
+/* legacy selector kept for compatibility */
+.flashcard-delete {
+  background: rgba(239, 68, 68, 0.9);
 }
 
 /* ===== MODAL ===== */

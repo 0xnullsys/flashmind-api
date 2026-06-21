@@ -5,9 +5,10 @@ import { FlashCardData } from '../lib/api';
 interface FlashcardProps {
   card: FlashCardData;
   onDelete: (id: string) => void;
+  onEdit?: (card: FlashCardData) => void;
 }
 
-export default function Flashcard({ card, onDelete }: FlashcardProps) {
+export default function Flashcard({ card, onDelete, onEdit }: FlashcardProps) {
   const [flipped, setFlipped] = useState(false);
 
   return (
@@ -41,16 +42,32 @@ export default function Flashcard({ card, onDelete }: FlashcardProps) {
           )}
         </div>
       </div>
-      <button
-        className="flashcard-delete"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(card.id);
-        }}
-        title={t('flashcard.delete')}
-      >
-        🗑
-      </button>
+      <div className="flashcard-actions">
+        {onEdit && (
+          <button
+            className="flashcard-edit"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(card);
+            }}
+            title="Edit kartu"
+            aria-label="Edit kartu"
+          >
+            ✎
+          </button>
+        )}
+        <button
+          className="flashcard-delete"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(card.id);
+          }}
+          title={t('flashcard.delete')}
+          aria-label="Hapus kartu"
+        >
+          🗑
+        </button>
+      </div>
     </div>
   );
 }
