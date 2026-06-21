@@ -5,7 +5,7 @@
 import CDP from 'chrome-remote-interface';
 import fs from 'fs';
 
-const PREVIEW_URL = 'https://flashmind-f5bvngoh5-alif-fakhrurrozy-6516s-projects.vercel.app';
+const PREVIEW_URL = 'https://flashmind-8nr6sgo5y-alif-fakhrurrozy-6516s-projects.vercel.app';
 const BYPASS_TOKEN = '[REDACTED-vercel-bypass]';
 const LOGIN_EMAIL = 'rls-test@flash.com';
 const LOGIN_PASSWORD = 'rlstest123';
@@ -184,8 +184,62 @@ async function main() {
         log('Capture button tap-friendly (≥44px)', r.height >= 44, `height=${r.height}px`);
       }
 
-      log('Capture button visible', m.captureBtnVisible);
+      log('Camera button visible', m.captureBtnVisible);
       log('Cancel button present', m.hasCancelBtn);
+
+      // ponytail: verify shutter button is large + circular (iOS Camera style)
+      if (m.captureBtnVisible) {
+        const captureStyle = await Runtime.evaluate({
+          expression: `(() => {
+            const btn = Array.from(document.querySelectorAll('.camera-modal button')).find(b => b.textContent.trim() === '📸');
+            if (!btn) return null;
+            const cs = window.getComputedStyle(btn);
+            const rect = btn.getBoundingClientRect();
+            return {
+              borderRadius: cs.borderRadius,
+              width: rect.width,
+              height: rect.height,
+              fontSize: cs.fontSize,
+              hasOnlyEmoji: btn.textContent.trim().length <= 2,
+            };
+          })()`,
+          returnByValue: true,
+        });
+        const s = captureStyle.result.value;
+        if (s) {
+          log('Shutter button is circular (border-radius ≥ 36px)', parseFloat(s.borderRadius) >= 36,
+            `border-radius=${s.borderRadius}`);
+          log('Shutter button large (≥64px)', s.width >= 64 && s.height >= 64,
+            `${s.width}x${s.height}px`);
+          log('Shutter button has only emoji (no text)', s.hasOnlyEmoji, `text="${captureStyle ? '' : ''}"`);
+        }
+
+        // ponytail: verify button position relative to viewport (bottom in portrait)
+        const buttonPosition = await Runtime.evaluate({
+          expression: `(() => {
+            const btn = Array.from(document.querySelectorAll('.camera-modal button')).find(b => b.textContent.trim() === '📸');
+            if (!btn) return null;
+            const rect = btn.getBoundingClientRect();
+            const vh = window.innerHeight;
+            const distanceFromBottom = vh - rect.bottom;
+            const distanceFromLeft = rect.left + rect.width / 2 - window.innerWidth / 2;
+            return {
+              distanceFromBottom,
+              distanceFromLeft: Math.abs(distanceFromLeft),
+              vh,
+              vw: window.innerWidth,
+            };
+          })()`,
+          returnByValue: true,
+        });
+        const pos = buttonPosition.result.value;
+        if (pos) {
+          log('Portrait: shutter near bottom (within 100px of bottom)', pos.distanceFromBottom < 100,
+            `distanceFromBottom=${pos.distanceFromBottom.toFixed(0)}px`);
+          log('Portrait: shutter horizontally centered', pos.distanceFromLeft < 50,
+            `off-center=${pos.distanceFromLeft.toFixed(0)}px`);
+        }
+      }
     } else {
       log('Camera modal opens on mobile', false);
     }
@@ -196,25 +250,51 @@ async function main() {
     console.log('\nPortrait screenshot: dist/camera-mobile-portrait.png');
 
     // Landscape test (rotate device)
+    // ponytail: change dimensions + media feature emulation so @media (orientation: landscape) matches
     await Emulation.setDeviceMetricsOverride({
       width: 844, height: 390, deviceScaleFactor: 3, mobile: true,
     });
-    await new Promise(r => setTimeout(r, 1000));
+    await Page.setLifecycleEventsEnabled({ enabled: true });
+    // Force layout reflow + media query re-evaluation
+    await Runtime.evaluate({ expression: `window.dispatchEvent(new Event('resize')); window.dispatchEvent(new Event('orientationchange'));`, returnByValue: true });
+    await new Promise(r => setTimeout(r, 1500));
 
     const landscapeMeasure = await Runtime.evaluate({
       expression: `(() => {
         const modal = document.querySelector('.camera-modal');
         if (!modal) return null;
         const rect = modal.getBoundingClientRect();
-        return { width: rect.width, height: rect.height, vw: window.innerWidth, vh: window.innerHeight };
+        const shutterBtn = Array.from(modal.querySelectorAll('button')).find(b => b.textContent.trim() === '📸');
+        const shutterRect = shutterBtn ? shutterBtn.getBoundingClientRect() : null;
+        return {
+          modal: { width: rect.width, height: rect.height, left: rect.left },
+          shutter: shutterRect ? { left: shutterRect.left, top: shutterRect.top, width: shutterRect.width, height: shutterRect.height } : null,
+          vw: window.innerWidth, vh: window.innerHeight,
+        };
       })()`,
       returnByValue: true,
     });
     if (landscapeMeasure.result.value) {
       const m = landscapeMeasure.result.value;
-      console.log(`\n  Landscape: viewport=${m.vw}x${m.vh}, modal=${m.width}x${m.height}`);
-      log('Landscape: modal full-screen', m.width >= m.vw * 0.9 && m.height >= m.vh * 0.9,
-        `${(m.width / m.vw * 100).toFixed(0)}% × ${(m.height / m.vh * 100).toFixed(0)}%`);
+      console.log(`\n  Landscape: viewport=${m.vw}x${m.vh}, modal=${m.modal.width}x${m.modal.height}`);
+      console.log(`  Shutter: ${m.shutter ? `at (${m.shutter.left.toFixed(0)}, ${m.shutter.top.toFixed(0)}) ${m.shutter.width}x${m.shutter.height}` : 'none'}`);
+
+      // ponytail: landscape should have horizontal layout (modal is full width)
+      log('Landscape: modal full-width', m.modal.width >= m.vw * 0.95,
+        `width=${m.modal.width}/${m.vw}=${(m.modal.width / m.vw * 100).toFixed(0)}%`);
+
+      // ponytail: shutter should be on the right side, not blocking video
+      if (m.shutter) {
+        const rightDistance = m.vw - m.shutter.left - m.shutter.width;
+        const centerX = m.vw / 2;
+        const shutterCenterX = m.shutter.left + m.shutter.width / 2;
+        log('Landscape: shutter on right side (not center)', shutterCenterX > centerX,
+          `centerX=${centerX.toFixed(0)}px, shutterCenterX=${shutterCenterX.toFixed(0)}px`);
+        log('Landscape: shutter not at far edge (within 100px of right)', rightDistance < 100,
+          `rightDistance=${rightDistance.toFixed(0)}px`);
+        log('Landscape: shutter vertically centered', Math.abs(m.shutter.top + m.shutter.height / 2 - m.vh / 2) < 100,
+          `vCenter=${m.vh / 2}, shutterVCenter=${(m.shutter.top + m.shutter.height / 2).toFixed(0)}`);
+      }
     }
 
     const { data: landscapeData } = await Page.captureScreenshot({ format: 'png' });

@@ -121,6 +121,7 @@ export default function CameraCaptureModal({ isOpen, onClose, onCapture }: Camer
         </div>
 
         <div className="form-actions camera-modal-actions">
+          {/* ponytail: shutter button — CSS-only icon (outer ring + inner dot), no text/emoji */}
           <button
             type="button"
             className="camera-capture-btn"
@@ -128,9 +129,7 @@ export default function CameraCaptureModal({ isOpen, onClose, onCapture }: Camer
             disabled={status !== 'ready'}
             title="Ambil foto"
             aria-label="Ambil foto"
-          >
-            📸
-          </button>
+          />
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Batal
           </button>
