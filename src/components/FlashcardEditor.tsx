@@ -9,27 +9,22 @@ interface FlashcardEditorProps {
 }
 
 const MAX_FILES = 5;
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_TYPES = /^image\/(png|jpe?g|webp|gif)$/;
 
 export default function FlashcardEditor({ isOpen, onClose, onCreated }: FlashcardEditorProps) {
-  const [title, setTitle] = useState('');
-  const [notes, setNotes] = useState('');
-  const [category, setCategory] = useState('');
-  const [attachments, setAttachments] = useState<string[]>([]);
+  // ponytail: single input (text + optional images); AI auto-formats Q/A and category
+  const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [cameraAvailable, setCameraAvailable] = useState<boolean | null>(null);
+  const [generatedCards, setGeneratedCards] = useState<Array<{ question: string; answer: string; category?: string }>>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [cameraAvailable, setCameraAvailable] = useState<boolean | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [cameraInputRef] = useState(useRef<HTMLInputElement>(null));
+  const [fileInputRef] = useState(useRef<HTMLInputElement>(null));
 
-  // ponytail: detect camera once when dialog opens
   useEffect(() => {
     if (!isOpen) return;
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+    if (!navigator.mediaDevices?.enumerateDevices) {
       setCameraAvailable(false);
       return;
     }
@@ -46,19 +41,19 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     if (!list || list.length === 0) return;
     const next = [...files];
     const nextPreviews = [...previews];
-    const nextAttachments = [...attachments];
+    let rejected = 0;
     for (let i = 0; i < list.length; i++) {
-      if (next.length >= MAX_FILES) break;
+      if (next.length >= MAX_FILES) {
+        rejected++;
+        continue;
+      }
       const file = list[i];
-      if (!ALLOWED_TYPES.test(file.type)) continue;
-      if (file.size > MAX_FILE_BYTES) continue;
       next.push(file);
       nextPreviews.push(URL.createObjectURL(file));
     }
     setFiles(next);
     setPreviews(nextPreviews);
-    // keep attachments in sync for base64 (created lazily on save)
-    void nextAttachments;
+    if (rejected > 0) setError(`Maksimal ${MAX_FILES} gambar — ${rejected} dilewati`);
   };
 
   const removeFile = (idx: number) => {
@@ -69,38 +64,36 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     nextPreviews.splice(idx, 1);
     setFiles(next);
     setPreviews(nextPreviews);
-    setAttachments((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // ponytail: AI from images uploads to Cloudinary first, then passes URLs to backend
-  const handleAiFromImages = async () => {
-    if (files.length === 0) {
-      setError('Unggah atau ambil foto catatan dulu');
+  const handleGenerate = async () => {
+    if (!text.trim() && files.length === 0) {
+      setError('Tempel catatan atau unggah gambar dulu');
       return;
     }
     setError('');
-    setAiLoading(true);
+    setLoading(true);
+    setGeneratedCards([]);
+
     try {
+      // upload images to Cloudinary first; backend downloads URLs for HF OCR
       const urls: string[] = [];
       for (const f of files) {
         try {
           const r = await uploadImage(f);
           urls.push(r.url);
         } catch (err) {
-          // skip individual failure
+          // skip individual upload failure
         }
       }
-      const result = await testAI('', urls);
-      if (result.cards && result.cards.length > 0) {
-        // ponytail: take first card as title+notes, ignore the rest (user can use AI dialog for batch)
-        setTitle(result.cards[0].judul);
-        setNotes(result.cards[0].catatan);
-        if ((result.cards[0] as any).category) {
-          setCategory((result.cards[0] as any).category);
-        }
-      } else {
-        setError('AI tidak menghasilkan kartu dari gambar');
-      }
+      const result = await testAI(text, urls);
+      const cards = (result.cards || []).map((c: any) => ({
+        question: c.judul || c.question || '',
+        answer: c.catatan || c.answer || '',
+        category: c.category,
+      })).filter((c) => c.question && c.answer);
+      setGeneratedCards(cards);
+      if (cards.length === 0) setError('AI tidak menghasilkan kartu. Coba tambah catatan lebih jelas.');
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -108,80 +101,27 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
         setError(t('ai.failed'));
       }
     } finally {
-      setAiLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveAll = async () => {
+    if (generatedCards.length === 0) return;
     setError('');
-
-    // ponytail: if images uploaded but no text, auto-generate via AI first
-    let finalTitle = title;
-    let finalNotes = notes;
-    let finalCategory = category;
-    if (files.length > 0 && (!finalTitle || !finalNotes)) {
-      try {
-        setAiLoading(true);
-        // ponytail: upload to Cloudinary, get URLs, then send to HF via backend
-        const urls: string[] = [];
-        for (const f of files) {
-          try {
-            const r = await uploadImage(f);
-            urls.push(r.url);
-          } catch (err) {
-            // skip
-          }
-        }
-        const result = await testAI('', urls);
-        if (result.cards && result.cards.length > 0) {
-          finalTitle = finalTitle || result.cards[0].judul;
-          finalNotes = finalNotes || result.cards[0].catatan;
-          if (!finalCategory && (result.cards[0] as any).category) {
-            finalCategory = (result.cards[0] as any).category;
-          }
-        }
-      } catch (err) {
-        // fall through to validation below
-      } finally {
-        setAiLoading(false);
-      }
-    }
-
-    if (!finalTitle || !finalNotes) {
-      setError(t('error.required'));
-      return;
-    }
-
     setLoading(true);
     try {
-      // ponytail: upload each file to Cloudinary first; store URLs in lampiran[]
-      const uploadedUrls: string[] = [];
-      for (const f of files) {
-        try {
-          const result = await uploadImage(f);
-          uploadedUrls.push(result.url);
-        } catch (err) {
-          // ponytail: skip individual upload failures but keep going
-          console.error('Upload failed for file:', f.name, err);
-        }
+      for (const card of generatedCards) {
+        await createFlashcard({
+          title: card.question,
+          notes: card.answer,
+          category: card.category,
+          source: 'ai',
+        });
       }
-      await createFlashcard({
-        title: finalTitle,
-        notes: finalNotes,
-        category: finalCategory || undefined,
-        attachments: uploadedUrls,
-        source: 'manual',
-      });
-      setTitle('');
-      setNotes('');
-      setCategory('');
-      setAttachments([]);
+      setText('');
       setFiles([]);
-      setPreviews((prev) => {
-        prev.forEach(URL.revokeObjectURL);
-        return [];
-      });
+      setPreviews([]);
+      setGeneratedCards([]);
       onCreated();
       onClose();
     } catch (err) {
@@ -195,139 +135,174 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     }
   };
 
+  const categoryColor = (cat?: string) => {
+    if (!cat) return 'var(--text-dim)';
+    // ponytail: deterministic color from category string hash
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) | 0;
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 55%, 45%)`;
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-dialog modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{t('dashboard.newManual')}</h2>
-          <button className="modal-close" onClick={onClose}>
-            ×
-          </button>
+          <h2>Buat Kartu dengan AI</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {error && <div className="form-error">{error}</div>}
+        {error && <div className="form-error">{error}</div>}
 
-          <div className="form-field">
-            <label>{t('flashcard.front')}</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('flashcard.front')}
-            />
-          </div>
+        {generatedCards.length === 0 ? (
+          <>
+            <p className="form-hint">
+              Tempel catatan atau unggah foto catatan. AI akan otomatis memformat
+              pertanyaan (depan) dan jawaban (belakang), lalu mengelompokkannya per kategori.
+            </p>
 
-          <div className="form-field">
-            <label>{t('flashcard.back')}</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t('flashcard.back')}
-              rows={5}
-            />
-          </div>
+            <div className="form-field">
+              <label>Catatan Anda</label>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="mis. Mitosis adalah proses pembelahan sel yang menghasilkan dua sel anak identik. Fotosintesis mengubah cahaya matahari menjadi energi kimia."
+                rows={6}
+              />
+            </div>
 
-          <div className="form-field">
-            <label>Kategori (opsional)</label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="mis. Biologi, Matematika, Bahasa Inggris"
-              list="kategori-saran"
-            />
-            <datalist id="kategori-saran">
-              <option value="Biologi" />
-              <option value="Fisika" />
-              <option value="Kimia" />
-              <option value="Matematika" />
-              <option value="Bahasa Inggris" />
-              <option value="Bahasa Indonesia" />
-              <option value="Sejarah" />
-              <option value="Geografi" />
-              <option value="Ekonomi" />
-              <option value="Pemrograman" />
-            </datalist>
-          </div>
+            <div className="form-field">
+              <label>Lampiran Gambar (maks {MAX_FILES}, opsional)</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              <div className="ai-upload-buttons">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  📎 Unggah gambar ({files.length}/{MAX_FILES})
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={cameraAvailable === false || cameraAvailable === null}
+                  title={
+                    cameraAvailable === false
+                      ? 'Kamera tidak terdeteksi pada perangkat ini'
+                      : cameraAvailable === null
+                      ? 'Mendeteksi kamera…'
+                      : 'Buka kamera untuk mengambil foto catatan'
+                  }
+                >
+                  {cameraAvailable === null ? '📷 Kamera…' : '📷 Ambil foto'}
+                </button>
+                {cameraAvailable === false && (
+                  <span className="ai-upload-hint">Kamera tidak terdeteksi pada perangkat ini</span>
+                )}
+              </div>
 
-          <div className="form-field">
-            <label>Lampiran Gambar (maks {MAX_FILES}, opsional — akan di-OCR otomatis)</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              multiple
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-            <div className="ai-upload-buttons">
+              {previews.length > 0 && (
+                <div className="attachment-previews">
+                  {previews.map((src, idx) => (
+                    <div key={idx} className="attachment-preview">
+                      <img src={src} alt={`Lampiran ${idx + 1}`} />
+                      <button type="button" onClick={() => removeFile(idx)}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="form-hint">
+                Tips: OCR membaca tulisan tangan dengan akurasi terbatas. Untuk hasil terbaik
+                gunakan foto catatan yang jelas dan terang.
+              </p>
+            </div>
+
+            <div className="form-actions">
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => fileInputRef.current?.click()}
+                className="btn btn-primary"
+                onClick={handleGenerate}
+                disabled={loading}
               >
-                📎 Unggah gambar ({files.length}/{MAX_FILES})
+                {loading ? t('ai.loading') : '✨ Hasilkan Kartu'}
               </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={cameraAvailable === false}
-                title={
-                  cameraAvailable === false
-                    ? 'Kamera tidak terdeteksi pada perangkat ini'
-                    : 'Buka kamera perangkat untuk mengambil foto catatan'
-                }
-              >
-                {cameraAvailable === null ? '📷 Kamera…' : '📷 Ambil foto'}
+              <button type="button" className="btn btn-secondary" onClick={onClose}>
+                Batal
               </button>
             </div>
-            {cameraAvailable === false && (
-              <div className="ai-upload-hint">Kamera tidak terdeteksi pada perangkat ini</div>
-            )}
+          </>
+        ) : (
+          <>
+            <p className="form-hint">
+              {generatedCards.length} kartu dihasilkan. Pilih untuk menyimpan atau
+              buat ulang dengan catatan berbeda.
+            </p>
 
-            {previews.length > 0 && (
-              <div className="attachment-previews">
-                {previews.map((src, idx) => (
-                  <div key={idx} className="attachment-preview">
-                    <img src={src} alt={`Lampiran ${idx + 1}`} />
-                    <button type="button" onClick={() => removeFile(idx)}>
-                      ×
-                    </button>
+            <div className="ai-card-list">
+              {generatedCards.map((card, i) => (
+                <div key={i} className="ai-card-item selected">
+                  <div className="ai-card-content">
+                    <div className="ai-card-question">
+                      <span className="ai-card-label">Depan</span>
+                      <p>{card.question}</p>
+                    </div>
+                    <div className="ai-card-answer">
+                      <span className="ai-card-label">Belakang</span>
+                      <p>{card.answer}</p>
+                    </div>
+                    {card.category && (
+                      <span
+                        className="card-category-tag"
+                        style={{ background: `color-mix(in srgb, ${categoryColor(card.category)} 20%, transparent)`, color: categoryColor(card.category), borderColor: `color-mix(in srgb, ${categoryColor(card.category)} 50%, transparent)` }}
+                      >
+                        {card.category}
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
 
-          <div className="form-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleAiFromImages}
-              disabled={aiLoading || files.length === 0}
-              title="Otomatis isi judul dan catatan dari gambar yang diunggah"
-            >
-              {aiLoading ? t('ai.loading') : '✨ Hasilkan dari gambar'}
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading || aiLoading}>
-              {loading ? t('ai.loading') : t('flashcard.save')}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              {t('flashcard.close')}
-            </button>
-          </div>
-        </form>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSaveAll}
+                disabled={loading}
+              >
+                {loading ? t('ai.loading') : `💾 Simpan ${generatedCards.length} Kartu`}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setGeneratedCards([])}
+                disabled={loading}
+              >
+                ← Kembali
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
+                Batal
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

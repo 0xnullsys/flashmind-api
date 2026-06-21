@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { t } from '../lib/id';
 import { useAuth } from '../lib/auth';
 import { getFlashcards, deleteFlashcard, FlashCardData } from '../lib/api';
@@ -16,7 +16,6 @@ export default function Dashboard() {
   const [showAI, setShowAI] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [error, setError] = useState('');
-  // ponytail: client-side category filter (no extra backend query)
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const loadCards = useCallback(async () => {
@@ -39,7 +38,6 @@ export default function Dashboard() {
     if (role === 'user') {
       loadCards();
     } else if (role === 'guest') {
-      // ponytail: guests have no cards to load — show empty state immediately
       setLoading(false);
     }
   }, [role, loadCards]);
@@ -62,6 +60,31 @@ export default function Dashboard() {
 
   const isGuest = role === 'guest';
 
+  // ponytail: group cards by category once, derive counts in same pass
+  const { groups, total } = useMemo(() => {
+    const map = new Map<string, FlashCardData[]>();
+    const noCat: FlashCardData[] = [];
+    for (const c of cards) {
+      if (c.category) {
+        if (!map.has(c.category)) map.set(c.category, []);
+        map.get(c.category)!.push(c);
+      } else {
+        noCat.push(c);
+      }
+    }
+    if (noCat.length > 0) map.set('Tanpa Kategori', noCat);
+    const sorted = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, 'id'));
+    return { groups: sorted, total: cards.length };
+  }, [cards]);
+
+  // ponytail: deterministic color per category — used by sidebar + chip
+  const categoryColor = (cat: string) => {
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) | 0;
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 55%, 45%)`;
+  };
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -79,32 +102,18 @@ export default function Dashboard() {
           )}
         </div>
         <div className="dashboard-header-right">
-          {isGuest && (
-            <>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowAuth(true)}
-              >
-                {t('dashboard.newManual')}
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowAI(true)}
-              >
-                {t('dashboard.aiGen')}
-              </button>
-            </>
-          )}
-          {!isGuest && (
-            <>
-              <button className="btn btn-primary" onClick={() => setShowEditor(true)}>
-                {t('dashboard.newManual')}
-              </button>
-              <button className="btn btn-secondary" onClick={() => setShowAI(true)}>
-                {t('dashboard.aiGen')}
-              </button>
-            </>
-          )}
+          <button
+            className="btn btn-primary"
+            onClick={() => (isGuest ? setShowAuth(true) : setShowEditor(true))}
+          >
+            {t('dashboard.newManual')}
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => (isGuest ? setShowAuth(true) : setShowAI(true))}
+          >
+            {t('dashboard.aiGen')}
+          </button>
           <button className="btn btn-outline" onClick={handleLogout}>
             Keluar
           </button>
@@ -125,62 +134,77 @@ export default function Dashboard() {
         </div>
       )}
 
-      <main className="dashboard-cards">
-        {loading ? (
-          <div className="dashboard-loading">{t('ai.loading')}</div>
-        ) : isGuest ? (
-          <div className="dashboard-empty">{t('dashboard.guestEmpty')}</div>
-        ) : cards.length === 0 ? (
-          <div className="dashboard-empty">{t('dashboard.empty')}</div>
-        ) : (
-          <>
-            {(() => {
-              // ponytail: derive category list + filtered cards in one pass
-              const categories = Array.from(
-                new Set(cards.map((c) => c.category).filter((c): c is string => !!c))
-              ).sort();
-              const filtered = activeCategory
-                ? cards.filter((c) => c.category === activeCategory)
-                : cards;
-              return (
-                <>
-                  {categories.length > 0 && (
-                    <div className="category-filter">
-                      <button
-                        className={`category-chip ${activeCategory === null ? 'active' : ''}`}
-                        onClick={() => setActiveCategory(null)}
-                      >
-                        Semua ({cards.length})
-                      </button>
-                      {categories.map((cat) => {
-                        const count = cards.filter((c) => c.category === cat).length;
-                        return (
-                          <button
-                            key={cat}
-                            className={`category-chip ${activeCategory === cat ? 'active' : ''}`}
-                            onClick={() => setActiveCategory(cat)}
-                          >
-                            {cat} ({count})
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div className="card-grid">
-                    {filtered.length === 0 ? (
-                      <div className="dashboard-empty">Tidak ada kartu dalam kategori ini</div>
-                    ) : (
-                      filtered.map((card) => (
-                        <Flashcard key={card.id} card={card} onDelete={handleDelete} />
-                      ))
-                    )}
-                  </div>
-                </>
-              );
-            })()}
-          </>
-        )}
-      </main>
+      <div className="dashboard-layout">
+        {/* Sidebar kategori */}
+        <aside className="dashboard-sidebar">
+          <h2 className="sidebar-title">Kategori</h2>
+          <nav className="category-list">
+            <button
+              className={`category-nav-item ${activeCategory === null ? 'active' : ''}`}
+              onClick={() => setActiveCategory(null)}
+            >
+              <span className="category-nav-icon">📚</span>
+              <span className="category-nav-label">Semua</span>
+              <span className="category-nav-count">{total}</span>
+            </button>
+            {groups.map(([cat, items]) => (
+              <button
+                key={cat}
+                className={`category-nav-item ${activeCategory === cat ? 'active' : ''}`}
+                onClick={() => setActiveCategory(cat)}
+                style={{ ['--cat-color' as any]: categoryColor(cat) }}
+              >
+                <span
+                  className="category-nav-dot"
+                  style={{ background: categoryColor(cat) }}
+                />
+                <span className="category-nav-label">{cat}</span>
+                <span className="category-nav-count">{items.length}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main area: kartu dikelompokkan per kategori */}
+        <main className="dashboard-main">
+          {loading ? (
+            <div className="dashboard-loading">{t('ai.loading')}</div>
+          ) : isGuest ? (
+            <div className="dashboard-empty">{t('dashboard.guestEmpty')}</div>
+          ) : cards.length === 0 ? (
+            <div className="dashboard-empty">
+              <p>{t('dashboard.empty')}</p>
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowEditor(true)}
+              >
+                {t('dashboard.newManual')}
+              </button>
+            </div>
+          ) : activeCategory ? (
+            // single category view
+            <CategorySection
+              name={activeCategory}
+              cards={groups.find(([n]) => n === activeCategory)?.[1] || []}
+              color={categoryColor(activeCategory)}
+              onDelete={handleDelete}
+            />
+          ) : (
+            // all categories, grouped
+            <>
+              {groups.map(([name, items]) => (
+                <CategorySection
+                  key={name}
+                  name={name}
+                  cards={items}
+                  color={categoryColor(name)}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </>
+          )}
+        </main>
+      </div>
 
       <FlashcardEditor
         isOpen={showEditor}
@@ -199,5 +223,32 @@ export default function Dashboard() {
         onClose={() => setShowAuth(false)}
       />
     </div>
+  );
+}
+
+function CategorySection({
+  name,
+  cards,
+  color,
+  onDelete,
+}: {
+  name: string;
+  cards: FlashCardData[];
+  color: string;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <section className="category-section" style={{ ['--cat-color' as any]: color }}>
+      <header className="category-section-header">
+        <span className="category-section-dot" style={{ background: color }} />
+        <h2 className="category-section-title">{name}</h2>
+        <span className="category-section-count">{cards.length} kartu</span>
+      </header>
+      <div className="card-grid">
+        {cards.map((card) => (
+          <Flashcard key={card.id} card={card} onDelete={onDelete} />
+        ))}
+      </div>
+    </section>
   );
 }
