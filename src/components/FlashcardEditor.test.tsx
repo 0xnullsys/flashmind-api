@@ -29,7 +29,7 @@ describe('FlashcardEditor (Issue #21: no title input, AI integrated)', () => {
   it('renders dialog with AI-focused title (not "Manual Card")', () => {
     render(<FlashcardEditor isOpen={true} onClose={onClose} onCreated={onCreated} />);
     // ponytail: header now reflects AI-first flow
-    expect(screen.getByText(/Buat Kartu dengan AI/i)).toBeInTheDocument();
+    expect(screen.getByText(/\+ Kartu Baru/i)).toBeInTheDocument();
   });
 
   it('does NOT render a "Judul" (title) input field', () => {

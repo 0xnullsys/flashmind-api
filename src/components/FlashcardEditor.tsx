@@ -171,7 +171,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-dialog modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Buat Kartu dengan AI</h2>
+          <h2>{t('dashboard.newManual')}</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
