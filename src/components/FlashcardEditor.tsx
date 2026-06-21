@@ -21,6 +21,11 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
   const [cameraStatus, setCameraStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [generatedCards, setGeneratedCards] = useState<Array<{ question: string; answer: string; category?: string }>>([]);
+  // ponytail: inline edit state — null = view, number = card index being edited
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editQuestion, setEditQuestion] = useState('');
+  const [editAnswer, setEditAnswer] = useState('');
+  const [editError, setEditError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +125,11 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
 
   const handleSaveAll = async () => {
     if (generatedCards.length === 0) return;
+    // ponytail: cancel any active edit before save
+    if (editingIndex !== null) {
+      setError('Selesaikan edit kartu terlebih dahulu (simpan atau batal).');
+      return;
+    }
     // ponytail: reject save if any AI card exceeds word limits
     const overLimit = generatedCards.filter(
       (c) => !checkFrontLimit(c.question).ok || !checkBackLimit(c.answer).ok
@@ -127,7 +137,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     if (overLimit.length > 0) {
       const front = overLimit.filter((c) => !checkFrontLimit(c.question).ok).length;
       const back = overLimit.filter((c) => !checkBackLimit(c.answer).ok).length;
-      setError(`${overLimit.length} kartu melebihi batas (${front} depan, ${back} belakang). Maks ${MAX_FRONT_CHARS}/${MAX_BACK_CHARS} karakter.`);
+      setError(`${overLimit.length} kartu melebihi batas (${front} depan, ${back} belakang). Klik kartu untuk mengedit. Maks ${MAX_FRONT_CHARS}/${MAX_BACK_CHARS} karakter.`);
       return;
     }
     setError('');
@@ -165,6 +175,45 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
     for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) | 0;
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 55%, 45%)`;
+  };
+
+  // ponytail: inline edit handlers — edit AI-generated cards before save
+  const startEdit = (i: number) => {
+    const card = generatedCards[i];
+    if (!card) return;
+    setEditingIndex(i);
+    setEditQuestion(card.question);
+    setEditAnswer(card.answer);
+    setEditError('');
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setEditQuestion('');
+    setEditAnswer('');
+    setEditError('');
+  };
+
+  const saveEdit = () => {
+    if (editingIndex === null) return;
+    const frontCheck = checkFrontLimit(editQuestion);
+    const backCheck = checkBackLimit(editAnswer);
+    if (!frontCheck.ok || !backCheck.ok) {
+      setEditError(`Melebihi batas karakter. Maks ${MAX_FRONT_CHARS}/${MAX_BACK_CHARS} karakter.`);
+      return;
+    }
+    if (!editQuestion.trim() || !editAnswer.trim()) {
+      setEditError('Pertanyaan dan jawaban tidak boleh kosong.');
+      return;
+    }
+    setGeneratedCards((prev) =>
+      prev.map((c, idx) =>
+        idx === editingIndex
+          ? { ...c, question: editQuestion.trim(), answer: editAnswer.trim() }
+          : c
+      )
+    );
+    cancelEdit();
   };
 
   return (
@@ -277,38 +326,87 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
 
             <div className="ai-card-list">
               {generatedCards.map((card, i) => {
-                const frontCheck = checkFrontLimit(card.question);
-                const backCheck = checkBackLimit(card.answer);
-                const overLimit = !frontCheck.ok || !backCheck.ok;
+                const isEditing = editingIndex === i;
+                const viewFrontCheck = checkFrontLimit(card.question);
+                const viewBackCheck = checkBackLimit(card.answer);
+                const viewOverLimit = !viewFrontCheck.ok || !viewBackCheck.ok;
+                const editFrontCheck = checkFrontLimit(editQuestion);
+                const editBackCheck = checkBackLimit(editAnswer);
                 return (
-                <div key={i} className={`ai-card-item selected ${overLimit ? 'over-limit' : ''}`}>
+                <div key={i} className={`ai-card-item selected ${viewOverLimit && !isEditing ? 'over-limit' : ''}`}>
                   <div className="ai-card-content">
-                    <div className="ai-card-question">
-                      <span className="ai-card-label">Depan</span>
-                      <p>{card.question}</p>
-                      <span className={`word-counter ${!frontCheck.ok ? 'word-counter-over' : ''}`}>
-                        {frontCheck.count}/{frontCheck.max} karakter
-                      </span>
-                    </div>
-                    <div className="ai-card-answer">
-                      <span className="ai-card-label">Belakang</span>
-                      <p>{card.answer}</p>
-                      <span className={`word-counter ${!backCheck.ok ? 'word-counter-over' : ''}`}>
-                        {backCheck.count}/{backCheck.max} karakter
-                      </span>
-                    </div>
-                    {card.category && (
-                      <span
-                        className="card-category-tag"
-                        style={{ background: `color-mix(in srgb, ${categoryColor(card.category)} 20%, transparent)`, color: categoryColor(card.category), borderColor: `color-mix(in srgb, ${categoryColor(card.category)} 50%, transparent)` }}
-                      >
-                        {card.category}
-                      </span>
-                    )}
-                    {overLimit && (
-                      <div className="word-limit-warning">
-                        Melebihi batas karakter — tidak bisa disimpan sampai dipendekkan
-                      </div>
+                    {isEditing ? (
+                      <>
+                        <div className="ai-card-question">
+                          <span className="ai-card-label">Depan (edit)</span>
+                          <textarea
+                            value={editQuestion}
+                            onChange={(e) => setEditQuestion(e.target.value)}
+                            rows={2}
+                            className="ai-card-edit-textarea"
+                            autoFocus
+                          />
+                          <span className={`word-counter ${!editFrontCheck.ok ? 'word-counter-over' : ''}`}>
+                            {editFrontCheck.count}/{editFrontCheck.max} karakter
+                          </span>
+                        </div>
+                        <div className="ai-card-answer">
+                          <span className="ai-card-label">Belakang (edit)</span>
+                          <textarea
+                            value={editAnswer}
+                            onChange={(e) => setEditAnswer(e.target.value)}
+                            rows={4}
+                            className="ai-card-edit-textarea"
+                          />
+                          <span className={`word-counter ${!editBackCheck.ok ? 'word-counter-over' : ''}`}>
+                            {editBackCheck.count}/{editBackCheck.max} karakter
+                          </span>
+                        </div>
+                        {editError && <div className="form-error">{editError}</div>}
+                        <div className="ai-card-edit-actions">
+                          <button type="button" className="btn btn-primary btn-sm" onClick={saveEdit}>
+                            ✓ Simpan
+                          </button>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={cancelEdit}>
+                            Batal
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="ai-card-question">
+                          <span className="ai-card-label">Depan</span>
+                          <p>{card.question}</p>
+                          <span className={`word-counter ${!viewFrontCheck.ok ? 'word-counter-over' : ''}`}>
+                            {viewFrontCheck.count}/{viewFrontCheck.max} karakter
+                          </span>
+                        </div>
+                        <div className="ai-card-answer">
+                          <span className="ai-card-label">Belakang</span>
+                          <p>{card.answer}</p>
+                          <span className={`word-counter ${!viewBackCheck.ok ? 'word-counter-over' : ''}`}>
+                            {viewBackCheck.count}/{viewBackCheck.max} karakter
+                          </span>
+                        </div>
+                        {card.category && (
+                          <span
+                            className="card-category-tag"
+                            style={{ background: `color-mix(in srgb, ${categoryColor(card.category)} 20%, transparent)`, color: categoryColor(card.category), borderColor: `color-mix(in srgb, ${categoryColor(card.category)} 50%, transparent)` }}
+                          >
+                            {card.category}
+                          </span>
+                        )}
+                        {viewOverLimit && (
+                          <div className="word-limit-warning">
+                            Melebihi batas karakter — klik Edit untuk memperpendek
+                          </div>
+                        )}
+                        <div className="ai-card-edit-actions">
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEdit(i)}>
+                            Edit
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

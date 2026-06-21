@@ -138,6 +138,45 @@ describe('FlashcardEditor (Issue #21: no title input, AI integrated)', () => {
     expect(await screen.findByText(/AI tidak menghasilkan kartu/i)).toBeInTheDocument();
   });
 
+  // ponytail: inline edit feature — user can fix over-limit cards before save
+  it('allows editing a generated card to fix over-limit text', async () => {
+    const user = userEvent.setup();
+    const longAnswer = 'A'.repeat(600); // over MAX_BACK_CHARS=500
+    vi.mocked(testAI).mockResolvedValue({
+      cards: [{ judul: 'Apa X?', catatan: longAnswer }],
+    });
+
+    render(<FlashcardEditor isOpen={true} onClose={onClose} onCreated={onCreated} />);
+    await user.type(screen.getByPlaceholderText(/Mitosis adalah/i), 'X adalah Y.');
+    await user.click(screen.getByRole('button', { name: /Hasilkan Kartu/i }));
+
+    // Wait for cards to render
+    expect(await screen.findByText('Apa X?')).toBeInTheDocument();
+    expect(await screen.findByText(/Melebihi batas karakter/i)).toBeInTheDocument();
+
+    // Click Edit on the card
+    await user.click(screen.getByRole('button', { name: /Edit/i }));
+
+    // Edit mode shows textareas
+    const editTextarea = screen.getByDisplayValue('A'.repeat(600));
+    expect(editTextarea).toBeInTheDocument();
+
+    // Replace with valid answer
+    const fixedAnswer = 'X adalah Y.';
+    await user.clear(editTextarea);
+    await user.type(editTextarea, fixedAnswer);
+    await user.click(screen.getByRole('button', { name: /^✓ Simpan$/i }));
+
+    // No more over-limit warning
+    expect(screen.queryByText(/Melebihi batas karakter/i)).not.toBeInTheDocument();
+
+    // Now save all should work
+    await user.click(screen.getByRole('button', { name: /Simpan 1 Kartu/i }));
+    expect(createFlashcard).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Apa X?',
+      notes: fixedAnswer,
+    }));
+  });
 
   it('does not render when isOpen=false', () => {
     const { container } = render(<FlashcardEditor isOpen={false} onClose={onClose} onCreated={onCreated} />);

@@ -25,14 +25,13 @@ export default function Flashcard({ card, onDelete, onEdit }: FlashcardProps) {
     >
       <div className="flashcard-inner">
         <div className="flashcard-front">
-          <h3>{card.title}</h3>
+          <p className="flashcard-text">{card.title}</p>
           <div className="flashcard-meta">
             {card.category && <span className="card-category-tag">{card.category}</span>}
-            <span className="flashcard-source">{card.source === 'ai' ? 'AI' : 'Manual'}</span>
           </div>
         </div>
         <div className="flashcard-back">
-          <p>{card.notes}</p>
+          <p className="flashcard-text">{card.notes}</p>
           {card.attachments && card.attachments.length > 0 && (
             <div className="flashcard-attachments">
               {card.attachments.map((att, i) => (
@@ -40,6 +39,7 @@ export default function Flashcard({ card, onDelete, onEdit }: FlashcardProps) {
               ))}
             </div>
           )}
+          {card.category && <span className="card-category-tag flashcard-back-tag">{card.category}</span>}
         </div>
       </div>
       <div className="flashcard-actions">
