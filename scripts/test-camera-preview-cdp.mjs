@@ -11,7 +11,7 @@
 import CDP from 'chrome-remote-interface';
 import fs from 'fs';
 
-const PREVIEW_URL = 'https://flashmind-66uibc28h-alif-fakhrurrozy-6516s-projects.vercel.app';
+const PREVIEW_URL = 'https://flashmind-rfy486463-alif-fakhrurrozy-6516s-projects.vercel.app';
 const BYPASS_TOKEN = '[REDACTED-vercel-bypass]';
 const LOGIN_EMAIL = 'rls-test@flash.com';
 const LOGIN_PASSWORD = 'rlstest123';
@@ -59,12 +59,12 @@ async function main() {
           const text = await r.text();
           return {
             hasGetUserMedia: text.includes('getUserMedia'),
-            // ponytail: video element + captureFrame logic signals WebRTC live preview
-            hasVideoElement: text.includes('camera-preview-video'),
-            hasCaptureFrame: text.includes('captureFrame') || text.includes('drawImage'),
+            // ponytail: CameraCaptureModal full-size dialog
+            hasCameraModalClass: text.includes('camera-modal'),
+            hasCameraModalHeading: text.includes('Ambil Foto Catatan'),
+            hasCaptureFrame: text.includes('drawImage'),
             hasFacingMode: text.includes('facingMode') || text.includes("'environment'") && text.includes('video'),
             hasToBlob: text.includes('toBlob'),
-            // ponytail: should NOT have file input with capture="environment" anymore
             hasCaptureAttr: text.includes('capture=\\"environment\\"') || text.includes("capture: 'environment'"),
           };
         })()`,
@@ -72,7 +72,8 @@ async function main() {
       });
       const r = srcCheck.result.value;
       log('Bundle has getUserMedia', r.hasGetUserMedia);
-      log('Bundle has video preview element', r.hasVideoElement);
+      log('Bundle has camera-modal class (full-size dialog)', r.hasCameraModalClass);
+      log('Bundle has "Ambil Foto Catatan" modal heading', r.hasCameraModalHeading);
       log('Bundle has captureFrame logic (canvas drawImage)', r.hasCaptureFrame);
       log('Bundle has canvas.toBlob (frame → blob)', r.hasToBlob);
       log('Bundle has facingMode: environment (rear camera)', r.hasFacingMode);
@@ -121,6 +122,23 @@ async function main() {
     await new Promise(r => setTimeout(r, 2000));
 
     // Wait for auto-detect to complete
+    await new Promise(r => setTimeout(r, 5000));
+
+    // Re-mock getUserMedia (may have been reset by navigation)
+    await Runtime.evaluate({
+      expression: `(() => {
+        Object.defineProperty(navigator, 'mediaDevices', {
+          configurable: true,
+          value: {
+            getUserMedia: async () => {
+              const track = { stop: () => {} };
+              return { getTracks: () => [track] };
+            },
+          },
+        });
+      })()`,
+      returnByValue: true,
+    });
     await new Promise(r => setTimeout(r, 2000));
 
     const initialState = await Runtime.evaluate({
@@ -161,22 +179,26 @@ async function main() {
     const afterClick = await Runtime.evaluate({
       expression: `JSON.stringify({
         getUserMediaCalls: window.__getUserMediaCalls,
-        lastConstraints: window.__lastConstraints,
-        btnText: Array.from(document.querySelectorAll('.modal-dialog button')).find(b => /Ambil foto|Memeriksa|📸/.test(b.textContent))?.textContent.trim(),
-        hasVideo: !!document.querySelector('.camera-preview video'),
-        hasCaptureBtn: !!Array.from(document.querySelectorAll('.modal-dialog button')).find(b => b.textContent.includes('📸')),
-        hasCloseBtn: !!Array.from(document.querySelectorAll('.modal-dialog button')).find(b => b.textContent.includes('Tutup kamera')),
+        // ponytail: full-size CameraCaptureModal — separate dialog with bigger video
+        hasCameraModal: !!document.querySelector('.camera-modal'),
+        hasCameraModalHeading: !!Array.from(document.querySelectorAll('h2')).find(h => h.textContent.includes('Ambil Foto Catatan')),
+        hasFullVideo: !!document.querySelector('.camera-modal-video'),
+        captureBtnVisible: !!Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('📸')),
+        cancelBtnVisible: !!Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Batal') && b.closest('.camera-modal')),
+        // ponytail: video width should be at least 600px (full-size modal, not small inline)
+        videoWidth: document.querySelector('.camera-modal-video')?.getBoundingClientRect().width || 0,
       })`,
       returnByValue: true,
     });
     const parsed = JSON.parse(afterClick.result.value);
     console.log(`  After click: ${JSON.stringify(parsed)}`);
-    log('getUserMedia called 2x (detect + live preview)', parsed.getUserMediaCalls >= 2, `calls=${parsed.getUserMediaCalls}`);
-    log('Last getUserMedia used facingMode: environment', parsed.lastConstraints && parsed.lastConstraints.includes('environment'),
-      `constraints=${parsed.lastConstraints}`);
-    log('Live video preview rendered', parsed.hasVideo);
-    log('Capture button (📸) appears in preview', parsed.hasCaptureBtn);
-    log('Close button (Tutup kamera) appears in preview', parsed.hasCloseBtn);
+    log('CameraCaptureModal opens', parsed.hasCameraModal);
+    log('Modal heading "Ambil Foto Catatan" visible', parsed.hasCameraModalHeading);
+    log('Modal has full-size video element', parsed.hasFullVideo);
+    log('Capture button (📸) in modal', parsed.captureBtnVisible);
+    log('Cancel button in modal', parsed.cancelBtnVisible);
+    log('Video is full-size (>=600px wide)', parsed.videoWidth >= 600,
+      `width=${parsed.videoWidth}px`);
 
     // Screenshot
     const { data } = await Page.captureScreenshot({ format: 'png' });
