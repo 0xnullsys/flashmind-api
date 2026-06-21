@@ -675,6 +675,9 @@ p {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  /* ponytail: prevent grid child overflow (intrinsic min-width of inputs otherwise
+     forces the second column past the modal's right edge) */
+  min-width: 0;
 }
 
 .auth-field label {
@@ -692,6 +695,10 @@ p {
   color: var(--text);
   font-size: 0.95rem;
   min-height: 44px;
+  /* ponytail: allow input to shrink to fit grid cell */
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .auth-field input:focus,
