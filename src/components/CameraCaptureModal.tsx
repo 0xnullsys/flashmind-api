@@ -123,11 +123,13 @@ export default function CameraCaptureModal({ isOpen, onClose, onCapture }: Camer
         <div className="form-actions camera-modal-actions">
           <button
             type="button"
-            className="btn btn-primary"
+            className="camera-capture-btn"
             onClick={handleCapture}
             disabled={status !== 'ready'}
+            title="Ambil foto"
+            aria-label="Ambil foto"
           >
-            📸 Ambil foto
+            📸
           </button>
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Batal
