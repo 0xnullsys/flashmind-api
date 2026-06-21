@@ -1,0 +1,29 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/config.ts",
+    "src/lib/api.ts",
+    "src/lib/auth.tsx",
+    "src/lib/charLimits.ts",
+    "src/App.tsx"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "docs/api",
+  "tsconfig": "tsconfig.json",
+  "name": "FlashMind API",
+  "includeVersion": true,
+  "readme": "none",
+  "githubPages": false,
+  "navigationLinks": {
+    "GitHub": "https://github.com/0xnullsys/flashmind-api",
+    "Branching": "BRANCHING.md"
+  },
+  "categorizeByGroup": true,
+  "navigation": {
+    "includeCategories": true
+  },
+  "sort": ["source-order"],
+  "excludePrivate": true,
+  "excludeExternals": true,
+  "skipErrorChecking": true
+}

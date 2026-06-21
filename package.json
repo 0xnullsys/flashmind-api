@@ -14,7 +14,10 @@
     "preview": "vite preview",
     "preview:dev": "vite preview --mode development",
     "start": "node dist/server/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "docs": "typedoc",
+    "docs:watch": "typedoc --watch",
+    "docs:serve": "npx http-server docs/api -p 8080 -o"
   },
   "dependencies": {
     "@gradio/client": "^1.14.0",
@@ -59,6 +62,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
     "tsx": "^4.19.2",
+    "typedoc": "^0.28.19",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vitest": "^2.1.5"

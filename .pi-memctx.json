@@ -1,0 +1,103 @@
+{
+  "$schema": "https://pi.dev/schema/memctx.json",
+  "version": "1.0",
+  "name": "flashmind",
+  "description": "FlashMind — AI-powered flashcard learning platform for Indonesian students",
+
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "server/**/*.ts",
+    "cloudflare-worker/**/*.ts",
+    "scripts/**/*.mjs",
+    "index.ts",
+    "vite.config.ts",
+    "vercel.json",
+    "package.json",
+    "tsconfig.json",
+    "tsconfig.server.json",
+    "schema.sql",
+    "README.md",
+    "BRANCHING.md",
+    "typedoc.json"
+  ],
+
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    ".vercel/**",
+    ".git/**",
+    "docs/api/**",
+    "coverage/**",
+    "*.local",
+    ".env",
+    ".env.local",
+    "hf-space-source/**",
+    "notes2anki/**",
+    "test/**",
+    "scripts/test-cdp-bypass.mjs",
+    "scripts/debug-*.mjs"
+  ],
+
+  "summary": {
+    "what": "AI-powered flashcard webapp that converts notes (text or handwritten photos) into Q/A flashcards using Indonesian language",
+    "stack": [
+      "Vite + React 18 + TypeScript (frontend SPA)",
+      "Express.js + TypeScript (backend API)",
+      "Supabase Postgres (database with RLS)",
+      "Cloudinary (image storage + optimization)",
+      "Hugging Face Spaces (EasyOCR + heuristic Q/A generation)",
+      "Cloudflare Worker (proxy to bypass Vercel egress block)",
+      "WebRTC getUserMedia (camera capture)",
+      "JWT cookie sessions",
+      "bcrypt password hashing",
+      "Multer multipart uploads"
+    ],
+    "buildVariants": [
+      "production: npm run build:prod → main branch → flashmind-api.vercel.app",
+      "development: npm run build:dev → dev branch → Vercel preview (auth-protected)"
+    ],
+    "branchStrategy": "main=production, dev=preview, feat/*=ephemeral preview",
+    "keyFeatures": [
+      "AI flashcard generation from text or photos",
+      "WebRTC camera capture (no file picker)",
+      "Category auto-detection (Biologi, Fisika, Matematika, etc.)",
+      "Character limits (120 front, 500 back) with Unicode-safe counting",
+      "Google OAuth + email/password auth",
+      "Guest mode (no signup)",
+      "Cloudinary image storage (URLs in DB, no base64)",
+      "iOS Camera-style mobile modal"
+    ]
+  },
+
+  "keyFiles": {
+    "entry-frontend": "src/main.tsx",
+    "entry-backend": "index.ts",
+    "routing": "src/App.tsx",
+    "api-client": "src/lib/api.ts",
+    "auth-context": "src/lib/auth.tsx",
+    "char-limits": "src/lib/charLimits.ts",
+    "build-config": "src/config.ts",
+    "express-app": "server/app.ts",
+    "supabase-client": "server/supabase.ts",
+    "ai-integration": "server/ai.ts",
+    "auth-routes": "server/routes/auth.ts",
+    "flashcard-routes": "server/routes/flashcards.ts",
+    "test-routes": "server/routes/test.ts",
+    "upload-routes": "server/routes/uploads.ts",
+    "camera-modal": "src/components/CameraCaptureModal.tsx",
+    "ai-editor": "src/components/FlashcardEditor.tsx",
+    "dashboard": "src/pages/Dashboard.tsx",
+    "landing": "src/pages/Landing.tsx"
+  },
+
+  "commands": {
+    "dev": "npm run dev (Vite :5173 + backend :3001)",
+    "build-prod": "npm run build:prod (main branch)",
+    "build-dev": "npm run build:dev (dev branch, dev banner)",
+    "test": "npm test (vitest, 47 tests)",
+    "docs": "npm run docs (typedoc → docs/api/)",
+    "deploy-prod": "git push origin main → Vercel auto-deploys",
+    "deploy-dev": "git push origin dev → Vercel preview deploy"
+  }
+}
