@@ -16,47 +16,43 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  // ponytail: camera states — null (unchecked), 'checking', true (available), false (no camera)
-  const [cameraStatus, setCameraStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  // ponytail: camera states — 'checking' (probing), 'available', 'unavailable'
+  const [cameraStatus, setCameraStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
   const [generatedCards, setGeneratedCards] = useState<Array<{ question: string; answer: string; category?: string }>>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ponytail: reset camera state when dialog opens
+  // ponytail: auto-detect camera on dialog mount via getUserMedia({video:true}).
+  // This is the OS-level probe that triggers the native camera permission prompt.
+  // Detection runs once per dialog open; result drives button enabled/disabled.
   useEffect(() => {
-    if (isOpen) setCameraStatus('idle');
+    if (!isOpen) return;
+    setCameraStatus('checking');
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          if (!cancelled) setCameraStatus('unavailable');
+          return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach((t) => t.stop());
+        if (!cancelled) setCameraStatus('available');
+      } catch {
+        if (!cancelled) setCameraStatus('unavailable');
+      }
+    })();
+    return () => { cancelled = true; };
   }, [isOpen]);
 
-  // ponytail: trigger camera detection when user clicks "Ambil foto" first time.
-  // Detection uses getUserMedia({video:true}) to actually request OS-level camera
-  // permission — this is what triggers the native "Allow camera?" prompt.
-  // We immediately stop the stream after detection to free the camera.
-  const detectCamera = async () => {
-    setCameraStatus('checking');
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraStatus('unavailable');
-        return;
-      }
-      // ponytail: probe by requesting a short-lived stream
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach((t) => t.stop());
-      setCameraStatus('available');
-    } catch {
-      setCameraStatus('unavailable');
-    }
-  };
-
   const handleCameraClick = () => {
-    // ponytail: only open picker after camera confirmed available
+    // ponytail: only open picker when camera is confirmed available
     if (cameraStatus === 'available') {
       cameraInputRef.current?.click();
-    } else if (cameraStatus === 'idle' || cameraStatus === 'checking') {
-      detectCamera();
     }
-    // unavailable: button is disabled, click is a no-op
+    // checking/unavailable: no-op (button is disabled in those states)
   };
 
   if (!isOpen) return null;
@@ -237,15 +233,13 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleCameraClick}
-                  disabled={cameraStatus === 'unavailable'}
+                  disabled={cameraStatus !== 'available'}
                   title={
                     cameraStatus === 'unavailable'
                       ? 'Kamera tidak terdeteksi pada perangkat ini'
                       : cameraStatus === 'checking'
                       ? 'Mendeteksi kamera…'
-                      : cameraStatus === 'available'
-                      ? 'Buka kamera untuk mengambil foto catatan'
-                      : 'Klik untuk mendeteksi kamera'
+                      : 'Buka kamera untuk mengambil foto catatan'
                   }
                 >
                   {cameraStatus === 'checking' ? '📷 Memeriksa…' : '📷 Ambil foto'}
