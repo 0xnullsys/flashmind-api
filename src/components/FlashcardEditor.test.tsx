@@ -165,7 +165,7 @@ describe('FlashcardEditor (Issue #21: no title input, AI integrated)', () => {
     const fixedAnswer = 'X adalah Y.';
     await user.clear(editTextarea);
     await user.type(editTextarea, fixedAnswer);
-    await user.click(screen.getByRole('button', { name: /^✓ Simpan$/i }));
+    await user.click(screen.getByRole('button', { name: /^Simpan$/i }));
 
     // No more over-limit warning
     expect(screen.queryByText(/Melebihi batas karakter/i)).not.toBeInTheDocument();

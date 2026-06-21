@@ -259,7 +259,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                   className="btn btn-secondary btn-sm"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  📎 Unggah gambar ({files.length}/{MAX_FILES})
+                  Unggah gambar ({files.length}/{MAX_FILES})
                 </button>
                 <button
                   type="button"
@@ -274,7 +274,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                       : 'Buka kamera untuk mengambil foto catatan'
                   }
                 >
-                  {cameraStatus === 'checking' ? '📷 Memeriksa…' : '📷 Ambil foto'}
+                  {cameraStatus === 'checking' ? 'Memeriksa kamera…' : 'Ambil foto'}
                 </button>
                 {cameraStatus === 'unavailable' && (
                   <span className="ai-upload-hint">Kamera tidak terdeteksi pada perangkat ini</span>
@@ -310,7 +310,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                 onClick={handleGenerate}
                 disabled={loading}
               >
-                {loading ? t('ai.loading') : '✨ Hasilkan Kartu'}
+                {loading ? t('ai.loading') : 'Hasilkan Kartu'}
               </button>
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Batal
@@ -365,7 +365,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                         {editError && <div className="form-error">{editError}</div>}
                         <div className="ai-card-edit-actions">
                           <button type="button" className="btn btn-primary btn-sm" onClick={saveEdit}>
-                            ✓ Simpan
+                            Simpan
                           </button>
                           <button type="button" className="btn btn-secondary btn-sm" onClick={cancelEdit}>
                             Batal
@@ -398,12 +398,12 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                         )}
                         {viewOverLimit && (
                           <div className="word-limit-warning">
-                            ⚠️ Melebihi batas karakter — klik Edit untuk memperpendek
+                            Melebihi batas karakter — klik Edit untuk memperpendek
                           </div>
                         )}
                         <div className="ai-card-edit-actions">
                           <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEdit(i)}>
-                            ✏️ Edit
+                            Edit
                           </button>
                         </div>
                       </>
@@ -421,7 +421,7 @@ export default function FlashcardEditor({ isOpen, onClose, onCreated }: Flashcar
                 onClick={handleSaveAll}
                 disabled={loading}
               >
-                {loading ? t('ai.loading') : `💾 Simpan ${generatedCards.length} Kartu`}
+                {loading ? t('ai.loading') : `Simpan ${generatedCards.length} Kartu`}
               </button>
               <button
                 type="button"

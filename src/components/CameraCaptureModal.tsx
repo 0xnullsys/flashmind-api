@@ -96,7 +96,7 @@ export default function CameraCaptureModal({ isOpen, onClose, onCapture }: Camer
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>📷 Ambil Foto Catatan</h2>
+          <h2>Ambil Foto Catatan</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 

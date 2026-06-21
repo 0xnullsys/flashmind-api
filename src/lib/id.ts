@@ -52,7 +52,7 @@ const id = {
   'dashboard.guestBanner': 'Anda masuk sebagai tamu. Buat akun gratis untuk menyimpan kartu belajar Anda.',
   'dashboard.guestCta': 'Daftar gratis',
   'dashboard.newManual': '+ Kartu Baru',
-  'dashboard.aiGen': '✨ Buat dengan AI',
+  'dashboard.aiGen': 'Buat dengan AI',
   'flashcard.front': 'Judul',
   'flashcard.back': 'Catatan',
   'flashcard.delete': 'Hapus',

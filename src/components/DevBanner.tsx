@@ -10,7 +10,7 @@ export default function DevBanner() {
 
   return (
     <div className="dev-banner" role="status">
-      <span className="dev-banner-icon">⚙️</span>
+      <span className="dev-banner-icon"></span>
       <span className="dev-banner-text">
         <strong>{config.appName}</strong>
         <span className="dev-banner-mode">{config.mode.toUpperCase()}</span>

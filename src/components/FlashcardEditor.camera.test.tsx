@@ -28,12 +28,12 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
 
     // Wait for detection to complete
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '📷 Ambil foto' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ambil foto' })).toBeInTheDocument();
     });
 
     // Button should be enabled (camera available)
     // ponytail: use exact button name to avoid matching hint text
-    const cameraBtn = screen.getByRole('button', { name: '📷 Ambil foto' });
+    const cameraBtn = screen.getByRole('button', { name: 'Ambil foto' });
     expect(cameraBtn).not.toBeDisabled();
 
     // Stream should have been stopped
@@ -57,7 +57,7 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
       expect(screen.getByText(/Kamera tidak terdeteksi/i)).toBeInTheDocument();
     });
 
-    const cameraBtn = screen.getByRole('button', { name: '📷 Ambil foto' });
+    const cameraBtn = screen.getByRole('button', { name: 'Ambil foto' });
     expect(cameraBtn).toBeDisabled();
   });
 
@@ -74,7 +74,7 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
       expect(screen.getByText(/Kamera tidak terdeteksi/i)).toBeInTheDocument();
     });
 
-    const cameraBtn = screen.getByRole('button', { name: '📷 Ambil foto' });
+    const cameraBtn = screen.getByRole('button', { name: 'Ambil foto' });
     expect(cameraBtn).toBeDisabled();
   });
 
@@ -93,11 +93,11 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
 
     // Wait for detection
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '📷 Ambil foto' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ambil foto' })).toBeInTheDocument();
     });
 
     // Click camera button — should open CameraCaptureModal (no second getUserMedia call)
-    const cameraBtn = screen.getByRole('button', { name: '📷 Ambil foto' });
+    const cameraBtn = screen.getByRole('button', { name: 'Ambil foto' });
     await user.click(cameraBtn);
 
     // CameraCaptureModal opens
@@ -122,7 +122,7 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
     });
 
     // Button should be disabled
-    const cameraBtn = screen.getByRole('button', { name: '📷 Ambil foto' });
+    const cameraBtn = screen.getByRole('button', { name: 'Ambil foto' });
     expect(cameraBtn).toBeDisabled();
   });
 
@@ -144,7 +144,7 @@ describe('FlashcardEditor camera flow (auto-detect on mount)', () => {
     // Open — triggers detection
     rerender(<FlashcardEditor isOpen={true} onClose={() => {}} onCreated={() => {}} />);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '📷 Ambil foto' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ambil foto' })).toBeInTheDocument();
     });
   });
 });
