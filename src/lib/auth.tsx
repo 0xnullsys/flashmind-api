@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { UserData, getProfile, guestSession, logout as apiLogout, login as apiLogin, register as apiRegister } from './api';
+import { UserData, getProfile, getAuthStatus, guestSession, logout as apiLogout, login as apiLogin, register as apiRegister } from './api';
 
 interface AuthState {
   user: UserData | null;
@@ -19,21 +19,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const checkSession = useCallback(async () => {
+    // ponytail: source of truth is the server cookie, not localStorage
+    // — /api/auth/status reads req.user / req.guest from middleware
     try {
-      const data = await getProfile();
-      setUser(data.user);
-      setRole('user');
-      localStorage.setItem('fm_role', 'user');
-    } catch {
-      // No active user session; check if we have a guest session marker
-      const guestFlag = localStorage.getItem('fm_role');
-      if (guestFlag === 'guest') {
-        setRole('guest');
+      const status = await getAuthStatus();
+      if (status.role === 'user') {
+        const data = await getProfile();
+        setUser(data.user);
+        setRole('user');
+        localStorage.setItem('fm_role', 'user');
+      } else if (status.role === 'guest') {
         setUser(null);
+        setRole('guest');
+        localStorage.setItem('fm_role', 'guest');
       } else {
         setUser(null);
         setRole(null);
+        localStorage.removeItem('fm_role');
       }
+    } catch {
+      setUser(null);
+      setRole(null);
+      localStorage.removeItem('fm_role');
     } finally {
       setLoading(false);
     }

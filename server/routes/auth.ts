@@ -333,4 +333,16 @@ router.get('/google/callback', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/auth/status - cek role aktif dari cookie (user/guest/null)
+router.get('/status', (req: Request, res: Response) => {
+  // ponytail: minimal payload; client panggil ini untuk restore session
+  if (req.user) {
+    res.json({ role: 'user', userId: req.user.id });
+  } else if (req.guest) {
+    res.json({ role: 'guest', guestId: req.guest.id });
+  } else {
+    res.json({ role: null });
+  }
+});
+
 export default router;

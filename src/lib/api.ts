@@ -85,6 +85,10 @@ export function getProfile() {
   return apiFetch<{ user: UserData }>('/users');
 }
 
+export function getAuthStatus(): Promise<{ role: 'user' | 'guest' | null; userId?: string; guestId?: string }> {
+  return apiFetch<{ role: 'user' | 'guest' | null; userId?: string; guestId?: string }>('/auth/status');
+}
+
 export function updateProfile(data: { firstName?: string; lastName?: string; notes?: string }) {
   return apiFetch<{ ok: boolean }>('/users', {
     method: 'PATCH',
